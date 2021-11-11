@@ -73,7 +73,7 @@ class Trainer():
 			if self.args.distributed:
 				print
 				(
-					f"[{os.getpid()}] Epoch-{e} ended {self.rank}/{self.DIST_DEFAULT_WORLD_SIZE} at {self.DIST_DEFAULT_INIT_METHOD} on {self.device} Para {self.model.state_dict()['GRCU_layers.0.GCN_init_weights']}"
+					f"[{os.getpid()}] Epoch-{e} ended {self.rank}/{self.DIST_DEFAULT_WORLD_SIZE} at {self.DIST_DEFAULT_INIT_METHOD} on {self.device} Para {self.gcn.state_dict()['GRCU_layers.0.GCN_init_weights']}"
 					)
 			else:
 				print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
