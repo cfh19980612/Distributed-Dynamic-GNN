@@ -67,7 +67,7 @@ class Trainer():
 		for e in range(self.args.num_epochs):
 
 			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
-			print(sum(Loss))
+			print('Epoch:{} Loss:{}'.format(e,sum(Loss)))
 			# #  是否执行验证集
 			# if len(self.splitter.dev)>0 and e>self.args.eval_after_epochs:
 			# 	eval_valid, _ = self.run_epoch(self.splitter.dev, e, 'VALID', grad = False)
