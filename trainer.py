@@ -69,9 +69,9 @@ class Trainer():
 
 			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
 			if args.distributed:
-            	print(f"[{os.getpid()}] Epoch-{e} ended {self.rank}/{self.DIST_DEFAULT_WORLD_SIZE} at {self.DIST_DEFAULT_INIT_METHOD} on {self.device}")
-        	else:
-            	print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
+				print(f"[{os.getpid()}] Epoch-{e} ended {self.rank}/{self.DIST_DEFAULT_WORLD_SIZE} at {self.DIST_DEFAULT_INIT_METHOD} on {self.device}")
+			else:
+				print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
 			# #  是否执行验证集
 			# if len(self.splitter.dev)>0 and e>self.args.eval_after_epochs:
 			# 	eval_valid, _ = self.run_epoch(self.splitter.dev, e, 'VALID', grad = False)
