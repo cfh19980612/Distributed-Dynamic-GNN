@@ -38,7 +38,7 @@ DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
 DIST_DEFAULT_PORT = '12344'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
-DIST_DEFAULT_WORLD_SIZE = 2
+DIST_DEFAULT_WORLD_SIZE = 1
 
 def build_random_hyper_params(args):
 	if args.model == 'all':
@@ -169,7 +169,9 @@ def worker(rank, args):
 	# for name, p in gcn.named_parameters(): print (name,p)
 	# print( p for p in list(gcn.parameters()))
 	# for key, param in gcn.named_parameters(): print(key, param)
-	print(gcn)
+	# print(gcn.state_dict()['GRCU_layers.0.GCN_init_weights'])
+	# for name in gcn.state_dict():
+	# 	print(name)
 	print('Process {} gets graphs with {} timesteps'.format(os.getpid(), dataset.max_time.item()+1))
 	# 分布式环境初始化，加入进程组，rank即为进程对应id
 
