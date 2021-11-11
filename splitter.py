@@ -11,7 +11,9 @@ class splitter():
     dev
     test
     '''
-    def __init__(self,args,tasker):
+    def __init__(self, args, tasker, scale, rank):
+
+        length = tasker.data.max_time // scale
 
         if tasker.is_static: #### For static datsets
             assert args.train_proportion + args.dev_proportion < 1, \
@@ -55,23 +57,23 @@ class splitter():
             #only the training one requires special handling on start, the others are fine with the split IDX.
             # train
             # print ('TIME', tasker.data.max_time, tasker.data.min_time )
-
+            max_timestep = (rank+1)*length
             '''
             key point: num_hist_step 为时序图的长度，每一个训练样本（或验证样本和测试样本）都为某一时刻的graph
             -> 通过将该时刻的graph与前num_hist_step时刻的图组合成为一个时序图，网络的输出只是最后一时刻，即该训练
             -> 样本所在时刻的图embedding
             '''
-            start = tasker.data.min_time + args.num_hist_steps #0 + args.adj_mat_time_window
+            start = tasker.data.min_time + args.num_hist_steps + rank*length  #0 + args.adj_mat_time_window
             end = args.train_proportion
             # print ('TIME-MAX', tasker.data.max_time.type(torch.float))
-            end = int(np.floor(tasker.data.max_time.type(torch.float) * end))  # np.floor向下取整 np.floor(24 * 0.7)
+            end = int(np.floor(max_timestep.type(torch.float) * end))  # np.floor向下取整 np.floor(24 * 0.7)
             train = data_split(tasker, start, end, test = False)
             train = DataLoader(train,**args.data_loading_params)
 
             # dev
             start = end
             end = args.dev_proportion + args.train_proportion
-            end = int(np.floor(tasker.data.max_time.type(torch.float) * end))
+            end = int(np.floor(max_timestep.type(torch.float) * end))
             if args.task == 'link_pred':
                 dev = data_split(tasker, start, end, test = True, all_edges=True)
             else:
@@ -81,7 +83,7 @@ class splitter():
             # test
             start = end
             #the +1 is because I assume that max_time exists in the dataset
-            end = int(tasker.max_time) + 1
+            end = int(max_timestep) + 1
             if args.task == 'link_pred':
                 test = data_split(tasker, start, end, test = True, all_edges=True)
             else:
