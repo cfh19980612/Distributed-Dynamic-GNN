@@ -13,7 +13,7 @@ class splitter():
     '''
     def __init__(self, args, tasker, scale, rank):
 
-        length = tasker.data.max_time // scale
+        length = tasker.data.max_time // 4
 
         if tasker.is_static: #### For static datsets
             assert args.train_proportion + args.dev_proportion < 1, \
@@ -72,7 +72,7 @@ class splitter():
 
             # dev
             start = end
-            end = args.dev_proportion + args.train_proportion
+            end = args.dev_proportion
             end = int(np.floor(length.type(torch.float) * end)) + start
             if args.task == 'link_pred':
                 dev = data_split(tasker, start, end, test = True, all_edges=True)
@@ -89,6 +89,7 @@ class splitter():
             else:
                 test = data_split(tasker, start, end, test = True)
             test = DataLoader(test,num_workers=args.data_loading_params['num_workers'])
+
             print ('Dataset splits sizes:  train',len(train), 'dev',len(dev), 'test',len(test))
 
             self.tasker = tasker
