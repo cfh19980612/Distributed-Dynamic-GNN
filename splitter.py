@@ -57,7 +57,7 @@ class splitter():
             #only the training one requires special handling on start, the others are fine with the split IDX.
             # train
             # print ('TIME', tasker.data.max_time, tasker.data.min_time )
-            max_timestep = (rank+1)*length
+            max_timestep = (rank+1)*length + args.num_hist_steps
             '''
             key point: num_hist_step 为时序图的长度，每一个训练样本（或验证样本和测试样本）都为某一时刻的graph
             -> 通过将该时刻的graph与前num_hist_step时刻的图组合成为一个时序图，网络的输出只是最后一时刻，即该训练
