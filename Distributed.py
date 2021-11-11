@@ -160,7 +160,7 @@ def worker(rank, args):
 	# 定义模型和数据集
 	dataset = build_dataset(args, rank)
 	tasker = build_tasker(args, dataset)
-	splitter = sp.splitter(args,tasker)  #build the splitter
+	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)  #build the splitter
 	gcn = build_gcn(args, tasker)  #build the models
 	# print(gcn.parameters())
 	# for p in gcn.parameters():

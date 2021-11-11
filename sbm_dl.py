@@ -69,8 +69,8 @@ class sbm_dataset():
         file = os.path.join(sbm_args.folder,sbm_args.edges_file)
         with open(file) as f:
             lines = f.read().splitlines()
-            if rankID == 0: lines = lines[:2507303]
-            if rankID == 1: lines = lines[2507302:]
+            # if rankID == 0: lines = lines[:2507303]
+            # if rankID == 1: lines = lines[2507302:]
         edges = [[float(r) for r in row.split(',')] for row in lines[starting_line:]]
 
         # key point: torch.tensor(data) 是一个函数，将data数据根据类型转换为tensor张量，而torch.Tensor是类
