@@ -4,9 +4,10 @@ import logger
 import time
 import pandas as pd
 import numpy as np
+import os
 
 class Trainer():
-	def __init__(self,args, splitter, gcn, classifier, comp_loss, dataset, num_classes, device, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD):
+	def __init__(self,args, splitter, gcn, classifier, comp_loss, dataset, num_classes, device, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD, rank):
 		self.args = args
 		self.splitter = splitter  # 数据集类，包含训练集，验证集和测试集
 		self.tasker = splitter.tasker  # 为训练集中的样本生成动态图属性列表，包含时序邻接矩阵列表，时序点特征列表等，生成的矩阵都为稀疏矩阵（字典），作为输入之前需要转为稠密矩阵
@@ -25,6 +26,7 @@ class Trainer():
 		self.device = device
 		self.DIST_DEFAULT_WORLD_SIZE = DIST_DEFAULT_WORLD_SIZE
 		self.DIST_DEFAULT_INIT_METHOD = DIST_DEFAULT_INIT_METHOD
+		self.rank = rank
 		if self.tasker.is_static:
 			adj_matrix = u.sparse_prepare_tensor(self.tasker.adj_matrix, torch_size = [self.num_nodes], ignore_batch_dim = False)
 			self.hist_adj_list = [adj_matrix]
@@ -68,7 +70,7 @@ class Trainer():
 		for e in range(self.args.num_epochs):
 
 			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
-			if args.distributed:
+			if self.args.distributed:
 				print(f"[{os.getpid()}] Epoch-{e} ended {self.rank}/{self.DIST_DEFAULT_WORLD_SIZE} at {self.DIST_DEFAULT_INIT_METHOD} on {self.device}")
 			else:
 				print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")

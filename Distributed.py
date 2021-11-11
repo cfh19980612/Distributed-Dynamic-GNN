@@ -210,7 +210,8 @@ def worker(rank, args):
 						 num_classes = tasker.num_classes,
 						 device = args.device,
 						 DIST_DEFAULT_WORLD_SIZE = DIST_DEFAULT_WORLD_SIZE,
-						 DIST_DEFAULT_INIT_METHOD = DIST_DEFAULT_INIT_METHOD)
+						 DIST_DEFAULT_INIT_METHOD = DIST_DEFAULT_INIT_METHOD,
+						 rank = rank)
 	trainer.train()
 
 # 定义分布式启动模块
