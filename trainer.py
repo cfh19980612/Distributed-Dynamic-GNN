@@ -71,10 +71,8 @@ class Trainer():
 
 			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
 			if self.args.distributed:
-				print
-				(
-					f"[{os.getpid()}] Epoch-{e} ended {self.rank}/{self.DIST_DEFAULT_WORLD_SIZE} at {self.DIST_DEFAULT_INIT_METHOD} on {self.device} Para {self.gcn.state_dict()['GRCU_layers.0.GCN_init_weights']}"
-					)
+				print("[{}] | Epoch:{} ended {}/{} at {} on {}, got para {}".format(os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD,
+					self.device, self.gcn.state_dict()['GRCU_layers.0.GCN_init_weights']))
 			else:
 				print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
 
