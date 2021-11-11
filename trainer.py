@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 class Trainer():
-	def __init__(self,args, splitter, gcn, classifier, comp_loss, dataset, num_classes, device):
+	def __init__(self,args, splitter, gcn, classifier, comp_loss, dataset, num_classes, device, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD):
 		self.args = args
 		self.splitter = splitter  # 数据集类，包含训练集，验证集和测试集
 		self.tasker = splitter.tasker  # 为训练集中的样本生成动态图属性列表，包含时序邻接矩阵列表，时序点特征列表等，生成的矩阵都为稀疏矩阵（字典），作为输入之前需要转为稠密矩阵
@@ -23,7 +23,8 @@ class Trainer():
 		self.init_optimizers(args)  #初始化优化器
 
 		self.device = device
-
+		self.DIST_DEFAULT_WORLD_SIZE = DIST_DEFAULT_WORLD_SIZE
+		self.DIST_DEFAULT_INIT_METHOD = DIST_DEFAULT_INIT_METHOD
 		if self.tasker.is_static:
 			adj_matrix = u.sparse_prepare_tensor(self.tasker.adj_matrix, torch_size = [self.num_nodes], ignore_batch_dim = False)
 			self.hist_adj_list = [adj_matrix]
@@ -67,7 +68,10 @@ class Trainer():
 		for e in range(self.args.num_epochs):
 
 			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
-			print('Epoch:{} Loss:{}'.format(e,sum(Loss)))
+			if args.distributed:
+            	print(f"[{os.getpid()}] Epoch-{e} ended {self.rank}/{self.DIST_DEFAULT_WORLD_SIZE} at {self.DIST_DEFAULT_INIT_METHOD} on {self.device}")
+        	else:
+            	print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
 			# #  是否执行验证集
 			# if len(self.splitter.dev)>0 and e>self.args.eval_after_epochs:
 			# 	eval_valid, _ = self.run_epoch(self.splitter.dev, e, 'VALID', grad = False)

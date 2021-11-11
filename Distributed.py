@@ -208,7 +208,9 @@ def worker(rank, args):
 						 comp_loss = cross_entropy,
 						 dataset = dataset,
 						 num_classes = tasker.num_classes,
-						 device = args.device)
+						 device = args.device,
+						 DIST_DEFAULT_WORLD_SIZE = DIST_DEFAULT_WORLD_SIZE,
+						 DIST_DEFAULT_INIT_METHOD = DIST_DEFAULT_INIT_METHOD)
 	trainer.train()
 
 # 定义分布式启动模块
