@@ -66,14 +66,14 @@ class splitter():
             start = tasker.data.min_time + args.num_hist_steps + rank*length  #0 + args.adj_mat_time_window
             end = args.train_proportion
             # print ('TIME-MAX', tasker.data.max_time.type(torch.float))
-            end = int(np.floor(max_timestep.type(torch.float) * end))  # np.floor向下取整 np.floor(24 * 0.7)
+            end = int(np.floor(length.type(torch.float) * end)) + start  # np.floor向下取整 np.floor(24 * 0.7)
             train = data_split(tasker, start, end, test = False)
             train = DataLoader(train,**args.data_loading_params)
 
             # dev
             start = end
             end = args.dev_proportion + args.train_proportion
-            end = int(np.floor(max_timestep.type(torch.float) * end))
+            end = int(np.floor(length.type(torch.float) * end)) + start
             if args.task == 'link_pred':
                 dev = data_split(tasker, start, end, test = True, all_edges=True)
             else:
