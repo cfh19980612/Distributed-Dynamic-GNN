@@ -19,7 +19,7 @@ class Trainer():
 		self.data = dataset  # 完整数据集（无调用）
 		self.num_classes = num_classes  # 总类别数
 
-		# self.logger = logger.Logger(args, self.num_classes)
+		self.logger = logger.Logger(args, self.num_classes)
 
 		self.init_optimizers(args)  #初始化优化器
 
@@ -67,22 +67,31 @@ class Trainer():
 		eval_valid = 0
 		epochs_without_impr = 0
 		log_file = 'sbm50'
+
+		# to csv
 		time_spend = []
 		loss = []
+		Precision = []
+		Recall = []
+		F1 = []
 		time_now = time.time()
 		for e in range(self.args.num_epochs):
-			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
+			Loss, nodes_embs, precision, recall, f1 = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
+			print(type(precision))
 			time_end = time.time()
 			time_spend.append(time_end-time_now)
+			loss.append(sum(Loss).item())
+			Precision.append(precision)
+			Recall.append(recall)
+			F1.append(f1)
 			if self.args.distributed:
 				# Namelist = []
 				# for name in self.gcn.state_dict():
 				# 	Namelist.append(name)
-				print("[{}] | Epoch:{} ended {}/{} at {} on {}, got loss {}".format(os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD,
-					self.device, sum(Loss)))
+				print("[{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}".format(
+					os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, sum(Loss), precision, recall, f1))
 			else:
 				print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
-			loss.append(sum(Loss))
 			# save the loss
 
 			# #  是否执行验证集
@@ -99,7 +108,7 @@ class Trainer():
 			# 			break
 
 			if len(self.splitter.test)>0 and eval_valid==best_eval_valid and e>self.args.eval_after_epochs:
-				Loss, nodes_embs_test = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
+				Loss, nodes_embs_test, precision, recall, f1 = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
 
 				if self.args.save_node_embeddings:
 					self.save_node_embs_csv(nodes_embs, self.splitter.train_idx, log_file+'_train_nodeembs.csv.gz')
@@ -107,6 +116,9 @@ class Trainer():
 					self.save_node_embs_csv(nodes_embs, self.splitter.test_idx, log_file+'_test_nodeembs.csv.gz')
 		dataframe = pd.DataFrame(time_spend, columns=['X'])
 		dataframe = pd.concat([dataframe, pd.DataFrame(loss,columns=['Y'])],axis=1)
+		dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
+		dataframe = pd.concat([dataframe, pd.DataFrame(Recall,columns=['P'])],axis=1)
+		dataframe = pd.concat([dataframe, pd.DataFrame(F1,columns=['Q'])],axis=1)
 		dataframe.to_csv(f"./result/{self.args.data}.csv",header = False,index=False,sep=',')
 
 	def run_epoch(self, split, epoch, set_name, grad):
@@ -115,7 +127,7 @@ class Trainer():
 		log_interval=999
 		if set_name=='TEST':
 			log_interval=1
-		# self.logger.log_epoch_start(epoch, len(split), set_name, minibatch_log_interval=log_interval)
+		self.logger.log_epoch_start(epoch, len(split), set_name, minibatch_log_interval=log_interval)
 		Loss = []
 		torch.set_grad_enabled(grad)
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
@@ -131,18 +143,18 @@ class Trainer():
 
 			loss = self.comp_loss(predictions,s.label_sp['vals'])
 			# print(loss)
-			# if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred':
-			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach(), adj = s.label_sp['idx'])
-			# else:
-			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
+			if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred' and self.rank == 0:
+				self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach(), adj = s.label_sp['idx'])
+			else:
+				self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
 			if grad:
 				self.optim_step(loss)
 			Loss.append(loss)
 
 		torch.set_grad_enabled(True)
-		# eval_measure = self.logger.log_epoch_done()
+		precision, recall, f1 = self.logger.log_epoch_done()
 
-		return Loss, nodes_embs
+		return Loss, nodes_embs, precision, recall, f1
 
 	def predict(self,gcn,hist_adj_list,hist_ndFeats_list,node_indices,mask_list):
 
@@ -176,7 +188,6 @@ class Trainer():
 
 			self.gcn_opt.zero_grad()
 			self.classifier_opt.zero_grad()
-
 
 	def prepare_sample(self,sample):
 		sample = u.Namespace(sample)
@@ -231,3 +242,48 @@ class Trainer():
 
 		pd.DataFrame(np.array(csv_node_embs)).to_csv(file_name, header=None, index=None, compression='gzip')
 		#print ('Node embs saved in',file_name)
+
+	# def log_info():
+	# 	for cl in range(self.num_classes):
+	# 		conf_mat_tp[cl]=0
+	# 		conf_mat_fn[cl]=0
+	# 		conf_mat_fp[cl]=0
+	# 		for k in eval_k_list:
+	# 			conf_mat_tp_at_k[k][cl]=0
+	# 			conf_mat_fn_at_k[k][cl]=0
+	# 			conf_mat_fp_at_k[k][cl]=0
+	# 	if set == "TEST":
+    #         conf_mat_tp_list = {}
+    #         conf_mat_fn_list = {}
+    #         conf_mat_fp_list = {}
+    #         for cl in range(num_classes):
+    #             conf_mat_tp_list[cl]=[]
+    #             conf_mat_fn_list[cl]=[]
+    #             conf_mat_fp_list[cl]=[]
+
+	# def log_info(set):
+
+	# 	precision, recall, f1 = calc_microavg_eval_measures(conf_mat_tp, conf_mat_fn, conf_mat_fp)
+	# 	print(set+' measures microavg - precision %0.4f - recall %0.4f - f1 %0.4f ' % (precision,recall,f1))
+
+	# def calc_microavg_eval_measures(tp, fn, fp):
+	# 	#ALDO
+    #     if type(tp) is dict:
+    #         tp_sum = tp[class_id].item()
+    #         fn_sum = fn[class_id].item()
+    #         fp_sum = fp[class_id].item()
+    #     else:
+    #         tp_sum = tp.item()
+    #         fn_sum = fn.item()
+    #         fp_sum = fp.item()
+    #     ########
+    #     if tp_sum==0:
+    #         return 0,0,0
+
+    #     p = tp_sum*1.0 / (tp_sum+fp_sum)
+    #     r = tp_sum*1.0 / (tp_sum+fn_sum)
+    #     if (p+r)>0:
+    #         f1 = 2.0 * (p*r) / (p+r)
+    #     else:
+    #         f1 = 0
+    #     return p, r, f1
