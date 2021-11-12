@@ -19,7 +19,7 @@ class Trainer():
 		self.data = dataset  # 完整数据集（无调用）
 		self.num_classes = num_classes  # 总类别数
 
-		self.logger = logger.Logger(args, self.num_classes)
+		# self.logger = logger.Logger(args, self.num_classes)
 
 		self.init_optimizers(args)  #初始化优化器
 
@@ -55,10 +55,10 @@ class Trainer():
 			self.classifier.load_state_dict(checkpoint['classifier_dict'])
 			self.gcn_opt.load_state_dict(checkpoint['gcn_optimizer'])
 			self.classifier_opt.load_state_dict(checkpoint['classifier_optimizer'])
-			self.logger.log_str("=> loaded checkpoint '{}' (epoch {})".format(filename, checkpoint['epoch']))
+			# self.logger.log_str("=> loaded checkpoint '{}' (epoch {})".format(filename, checkpoint['epoch']))
 			return epoch
 		else:
-			self.logger.log_str("=> no checkpoint found at '{}'".format(filename))
+			# self.logger.log_str("=> no checkpoint found at '{}'".format(filename))
 			return 0
 
 	def train(self):
@@ -67,17 +67,23 @@ class Trainer():
 		eval_valid = 0
 		epochs_without_impr = 0
 		log_file = 'sbm50'
+		time_spend = []
+		loss = []
+		time_now = time.time()
 		for e in range(self.args.num_epochs):
-
 			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
+			time_end = time.time()
+			time_spend.append(time_end-time_now)
 			if self.args.distributed:
-				Namelist = []
-				for name in self.gcn.state_dict():
-					Namelist.append(name)
-				print("[{}] | Epoch:{} ended {}/{} at {} on {}, got para {}".format(os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD,
-					self.device, self.gcn.state_dict()[Namelist[0]]))
+				# Namelist = []
+				# for name in self.gcn.state_dict():
+				# 	Namelist.append(name)
+				print("[{}] | Epoch:{} ended {}/{} at {} on {}, got loss {}".format(os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD,
+					self.device, sum(Loss)))
 			else:
 				print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
+			loss.append(sum(Loss))
+			# save the loss
 
 			# #  是否执行验证集
 			# if len(self.splitter.dev)>0 and e>self.args.eval_after_epochs:
@@ -99,7 +105,9 @@ class Trainer():
 					self.save_node_embs_csv(nodes_embs, self.splitter.train_idx, log_file+'_train_nodeembs.csv.gz')
 					self.save_node_embs_csv(nodes_embs, self.splitter.dev_idx, log_file+'_valid_nodeembs.csv.gz')
 					self.save_node_embs_csv(nodes_embs, self.splitter.test_idx, log_file+'_test_nodeembs.csv.gz')
-
+		dataframe = pd.DataFrame(time_spend, columns=['X'])
+		dataframe = pd.concat([dataframe, pd.DataFrame(loss,columns=['Y'])],axis=1)
+		dataframe.to_csv(f"./result/{self.args.data}.csv",header = False,index=False,sep=',')
 
 	def run_epoch(self, split, epoch, set_name, grad):
 
