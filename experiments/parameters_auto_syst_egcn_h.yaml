@@ -37,7 +37,7 @@ target_class: 1 # Target class to get the measure to define the best epoch (all,
 early_stop_patience: 50
 
 
-eval_after_epochs: 5
+eval_after_epochs: 1
 adj_mat_time_window: 1  # Time window to create the adj matrix for each timestep. Use None to use all the history (from 0 to t)
 # adj_mat_time_window_min: 1
 # adj_mat_time_window_max: 10

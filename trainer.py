@@ -79,18 +79,6 @@ class Trainer():
 			Loss, nodes_embs, precision, recall, f1 = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
 			time_end = time.time()
 			time_spend.append(time_end-time_now)
-			loss.append(sum(Loss).item())
-			Precision.append(precision)
-			Recall.append(recall)
-			F1.append(f1)
-			if self.args.distributed:
-				# Namelist = []
-				# for name in self.gcn.state_dict():
-				# 	Namelist.append(name)
-				print("[{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}".format(
-					os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, sum(Loss), precision, recall, f1))
-			else:
-				print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
 			# save the loss
 
 			# #  是否执行验证集
@@ -106,9 +94,22 @@ class Trainer():
 			# 			print ('### w'+str(self.args.rank)+') ep '+str(e)+' - Early stop.')
 			# 			break
 
-			if len(self.splitter.test)>0 and eval_valid==best_eval_valid and e>self.args.eval_after_epochs:
+			if len(self.splitter.test)>0 and e>self.args.eval_after_epochs:
 				Loss, nodes_embs_test, precision, recall, f1 = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
+				if self.args.distributed and self.rank == 0:
+				# Namelist = []
+				# for name in self.gcn.state_dict():
+				# 	Namelist.append(name)
+					print("[{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}".format(
+						os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, sum(Loss), precision, recall, f1))
+				else:
+					print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
 
+				# save the output
+				loss.append(sum(Loss).item())
+				Precision.append(precision)
+				Recall.append(recall)
+				F1.append(f1)
 				if self.args.save_node_embeddings:
 					self.save_node_embs_csv(nodes_embs, self.splitter.train_idx, log_file+'_train_nodeembs.csv.gz')
 					self.save_node_embs_csv(nodes_embs, self.splitter.dev_idx, log_file+'_valid_nodeembs.csv.gz')
