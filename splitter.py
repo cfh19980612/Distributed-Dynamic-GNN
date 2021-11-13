@@ -12,7 +12,7 @@ class splitter():
     test
     '''
     def __init__(self, args, tasker, scale, rank):
-        tasker.data.max_time = int(np.floor((tasker.data.max_time)/2))
+        tasker.data.max_time = tasker.data.max_time - 50
         train_total = (tasker.data.max_time + 1 - args.num_hist_steps) * args.train_proportion
         length = train_total // scale
 
