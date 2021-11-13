@@ -94,9 +94,9 @@ class Trainer():
 			# 			print ('### w'+str(self.args.rank)+') ep '+str(e)+' - Early stop.')
 			# 			break
 
-			if len(self.splitter.test)>0 and e>self.args.eval_after_epochs:
+			if len(self.splitter.test)>0 and e>self.args.eval_after_epochs and self.rank == 0:
 				Loss, nodes_embs_test, precision, recall, f1 = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
-				if self.args.distributed and self.rank == 0:
+				if self.args.distributed:
 				# Namelist = []
 				# for name in self.gcn.state_dict():
 				# 	Namelist.append(name)
