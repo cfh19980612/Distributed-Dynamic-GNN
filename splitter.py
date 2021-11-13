@@ -12,7 +12,8 @@ class splitter():
     test
     '''
     def __init__(self, args, tasker, scale, rank):
-        train_total = (tasker.data.max_time + 1 - args.num_hist_steps) * args.train_proportion
+        max_time = 49
+        train_total = (max_time + 1 - args.num_hist_steps) * args.train_proportion
         length = train_total // scale
 
         if tasker.is_static: #### For static datsets
@@ -75,7 +76,7 @@ class splitter():
             # dev
             start = int(np.floor(train_total)) + args.num_hist_steps
             end = args.dev_proportion
-            end = int(np.floor(tasker.data.max_time.type(torch.float) * end)) + start
+            end = int(np.floor(max_time.type(torch.float) * end)) + start
             if args.task == 'link_pred':
                 dev = data_split(tasker, start, end, test = True, all_edges=True)
             else:
@@ -85,7 +86,7 @@ class splitter():
             # test
             start = end
             #the +1 is because I assume that max_time exists in the dataset
-            end = int(tasker.data.max_time) + 1
+            end = int(max_time) + 1
             if args.task == 'link_pred':
                 test = data_split(tasker, start, end, test = True, all_edges=True)
             else:

@@ -66,7 +66,7 @@ class Trainer():
 		best_eval_valid = 0
 		eval_valid = 0
 		epochs_without_impr = 0
-		log_file = 'sbm50'
+		log_file = self.args.data
 
 		# to csv
 		time_spend = []
