@@ -93,8 +93,10 @@ class Trainer():
 			# 		if epochs_without_impr>self.args.early_stop_patience:
 			# 			print ('### w'+str(self.args.rank)+') ep '+str(e)+' - Early stop.')
 			# 			break
-
+			assert len(self.splitter.test)>0, \
+                'there\'s no test samples'
 			if len(self.splitter.test)>0 and e>self.args.eval_after_epochs and self.rank == 0:
+				print('Start testing!')
 				Loss, nodes_embs_test, precision, recall, f1 = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
 				if self.args.distributed:
 				# Namelist = []
@@ -114,6 +116,7 @@ class Trainer():
 					self.save_node_embs_csv(nodes_embs, self.splitter.train_idx, log_file+'_train_nodeembs.csv.gz')
 					self.save_node_embs_csv(nodes_embs, self.splitter.dev_idx, log_file+'_valid_nodeembs.csv.gz')
 					self.save_node_embs_csv(nodes_embs, self.splitter.test_idx, log_file+'_test_nodeembs.csv.gz')
+
 		dataframe = pd.DataFrame(time_spend, columns=['X'])
 		dataframe = pd.concat([dataframe, pd.DataFrame(loss,columns=['Y'])],axis=1)
 		dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
