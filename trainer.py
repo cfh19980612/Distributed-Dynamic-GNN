@@ -96,7 +96,7 @@ class Trainer():
 			# 			break
 			assert len(self.splitter.test)>0, \
                 'there\'s no test samples'
-			if len(self.splitter.test)>0 and e>self.args.eval_after_epochs and self.rank == 0:
+			if len(self.splitter.test)>0 and e>=self.args.eval_after_epochs-1 and self.rank == 0:
 				print('Start testing!')
 				Loss, nodes_embs_test, precision, recall, f1 = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
 				if self.args.distributed:
