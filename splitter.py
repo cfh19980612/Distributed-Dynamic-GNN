@@ -68,7 +68,7 @@ class splitter():
             end = args.train_proportion
             # print ('TIME-MAX', tasker.data.max_time.type(torch.float))
             # end = int(np.floor(train_total.type(torch.float) * end)) + start  # np.floor向下取整 np.floor(24 * 0.7)
-            end = int(np.floor((rank+1)*length)) + start
+            end = int(length.item()) + start
             train = data_split(tasker, start, end, test = False)
             train = DataLoader(train,**args.data_loading_params)
 
