@@ -12,8 +12,8 @@ class splitter():
     test
     '''
     def __init__(self, args, tasker, scale, rank):
-
-        length = tasker.data.max_time // 10
+        train_total = (tasker.data.max_time + 1 - args.num_hist_steps) * args.train_proportion
+        length = train_total // scale
 
         if tasker.is_static: #### For static datsets
             assert args.train_proportion + args.dev_proportion < 1, \
@@ -63,17 +63,19 @@ class splitter():
             -> 通过将该时刻的graph与前num_hist_step时刻的图组合成为一个时序图，网络的输出只是最后一时刻，即该训练
             -> 样本所在时刻的图embedding
             '''
-            start = tasker.data.min_time + args.num_hist_steps + rank*length  #0 + args.adj_mat_time_window
+            # start = tasker.data.min_time + args.num_hist_steps + rank*length  #0 + args.adj_mat_time_window
+            start = int(np.floor(tasker.data.min_time + args.num_hist_steps + rank*length))
             end = args.train_proportion
             # print ('TIME-MAX', tasker.data.max_time.type(torch.float))
-            end = int(np.floor(length.type(torch.float) * end)) + start  # np.floor向下取整 np.floor(24 * 0.7)
+            # end = int(np.floor(train_total.type(torch.float) * end)) + start  # np.floor向下取整 np.floor(24 * 0.7)
+            end = int(np.floor((rank+1)*length)) + start
             train = data_split(tasker, start, end, test = False)
             train = DataLoader(train,**args.data_loading_params)
 
             # dev
-            start = end
+            start = int(np.floor(train_total)) + args.num_hist_steps
             end = args.dev_proportion
-            end = int(np.floor(length.type(torch.float) * end)) + start
+            end = int(np.floor(tasker.data.max_time.type(torch.float) * end)) + start
             if args.task == 'link_pred':
                 dev = data_split(tasker, start, end, test = True, all_edges=True)
             else:
@@ -83,7 +85,7 @@ class splitter():
             # test
             start = end
             #the +1 is because I assume that max_time exists in the dataset
-            end = int(max_timestep) + 1
+            end = int(tasker.data.max_time) + 1
             if args.task == 'link_pred':
                 test = data_split(tasker, start, end, test = True, all_edges=True)
             else:

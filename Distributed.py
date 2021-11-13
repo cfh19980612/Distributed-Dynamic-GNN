@@ -16,7 +16,7 @@ import warnings
 # import bitcoin_dl as bc
 # import elliptic_temporal_dl as ell_temp
 # import uc_irv_mess_dl as ucim
-# import auto_syst_dl as aus
+import auto_syst_dl as aus
 # import reddit_dl as rdt
 import sbm_dl as sbm
 #taskers
@@ -149,7 +149,6 @@ def build_classifier(args,tasker):
 	return mls.Classifier(args,in_features = in_feats, out_features = tasker.num_classes).to(args.device)
 
 def worker(rank, args):
-
 	# CPU or GPU?
 	args.device='cpu'
 	args.use_cuda = (torch.cuda.is_available() and args.use_cuda)
@@ -170,8 +169,11 @@ def worker(rank, args):
 	# print( p for p in list(gcn.parameters()))
 	# for key, param in gcn.named_parameters(): print(key, param)
 	# print(gcn.state_dict()['GRCU_layers.0.GCN_init_weights'])
+	# Namelist = []
 	# for name in gcn.state_dict():
-	# 	print(name)
+	# 	Namelist.append(name)
+	# print("[{}] | Epoch:{} ended {}/{} at {} on {}, got para {}".format(os.getpid(), 1, rank+1, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD,
+	# 				args.device, gcn.state_dict()[Namelist[0]]))
 	print('Process {} gets graphs with {} timesteps'.format(os.getpid(), dataset.max_time.item()+1))
 	# 分布式环境初始化，加入进程组，rank即为进程对应id
 
@@ -200,7 +202,7 @@ def worker(rank, args):
 
 	classifier = build_classifier(args,tasker)
 	#build a loss
-	cross_entropy = ce.Cross_Entropy(args,dataset).to(args.device)
+	cross_entropy = ce.Cross_Entropy(args,dataset).to(gcn.device)
 
 	#trainer
 	trainer = tr.Trainer(args,
@@ -210,7 +212,7 @@ def worker(rank, args):
 						 comp_loss = cross_entropy,
 						 dataset = dataset,
 						 num_classes = tasker.num_classes,
-						 device = args.device,
+						 device = gcn.device,
 						 DIST_DEFAULT_WORLD_SIZE = DIST_DEFAULT_WORLD_SIZE,
 						 DIST_DEFAULT_INIT_METHOD = DIST_DEFAULT_INIT_METHOD,
 						 rank = rank)

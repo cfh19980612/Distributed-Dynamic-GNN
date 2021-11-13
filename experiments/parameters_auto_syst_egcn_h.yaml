@@ -8,9 +8,9 @@ aut_sys_args:
 
 
 use_cuda: True
-use_logfile: True
+use_logfile: False
 
-model: egcn_h 
+model: egcn_h
 
 task: link_pred
 
@@ -19,10 +19,11 @@ use_2_hot_node_feats: False
 use_1_hot_node_feats: True
 save_node_embeddings: False
 
-train_proportion: 0.7 
+train_proportion: 0.7
 dev_proportion: 0.1
+test_proportion: 0.2
 
-num_epochs: 1000 #number of passes though the data
+num_epochs: 20 #number of passes though the data
 steps_accum_gradients: 1
 learning_rate: 0.005
 learning_rate_min: 0.0005
@@ -46,7 +47,7 @@ num_hist_steps_max: 10 # only used if num_hist_steps: None
 
 data_loading_params:
   batch_size: 1
-  num_workers: 8
+  num_workers: 0
 
 gcn_parameters:
   feats_per_node: 100

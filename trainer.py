@@ -77,7 +77,6 @@ class Trainer():
 		time_now = time.time()
 		for e in range(self.args.num_epochs):
 			Loss, nodes_embs, precision, recall, f1 = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
-			print(type(precision))
 			time_end = time.time()
 			time_spend.append(time_end-time_now)
 			loss.append(sum(Loss).item())
