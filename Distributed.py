@@ -38,7 +38,7 @@ DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
 DIST_DEFAULT_PORT = '12344'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
-DIST_DEFAULT_WORLD_SIZE = 4
+DIST_DEFAULT_WORLD_SIZE = 1
 
 def build_random_hyper_params(args):
 	if args.model == 'all':
@@ -158,6 +158,7 @@ def worker(rank, args):
 
 	# 定义模型和数据集
 	dataset = build_dataset(args, rank)
+	print(dataset.max_time)
 	dataset.max_time = dataset.max_time - 50
 	tasker = build_tasker(args, dataset)
 	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)  #build the splitter
