@@ -121,7 +121,7 @@ class Trainer():
 		dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
 		dataframe = pd.concat([dataframe, pd.DataFrame(Recall,columns=['P'])],axis=1)
 		dataframe = pd.concat([dataframe, pd.DataFrame(F1,columns=['Q'])],axis=1)
-		dataframe.to_csv(f"./result/{self.args.data}.csv",header = False,index=False,sep=',')
+		dataframe.to_csv(f"./result/{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
 
 	def run_epoch(self, split, epoch, set_name, grad):
 
