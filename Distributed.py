@@ -159,7 +159,7 @@ def worker(rank, args):
 	# 定义模型和数据集
 	dataset = build_dataset(args, rank)
 	print(dataset.max_time)
-	dataset.max_time = dataset.max_time - 10
+	dataset.max_time = dataset.max_time - 25
 	tasker = build_tasker(args, dataset)
 	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)  #build the splitter
 	gcn = build_gcn(args, tasker)  #build the models
