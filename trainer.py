@@ -164,6 +164,8 @@ class Trainer():
 		time_total_start = time.time()
 		total_loss = []
 		a = 0
+		Prediction = []
+		Label = []
 		# print('current time 1: ', time.time())
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
 			time_start = time.time()
@@ -196,7 +198,9 @@ class Trainer():
 												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
 			# print('current time 3: ', a, time.time())
-			loss = self.comp_loss(predictions,s.label_sp['vals'])
+			Prediction.append(predictions)
+			Label.append(s.label_sp['vals'])
+			# loss = self.comp_loss(predictions,s.label_sp['vals'])
 			# print('current time 4: ', a, time.time())
 
 			time_end = time.time()
@@ -204,7 +208,6 @@ class Trainer():
 
 			# release the GPU
 			for i, adj in enumerate(s.hist_adj_list):
-				print(s.hist_adj_list[i].device)
 				s.hist_adj_list[i].to('cpu')
 				s.hist_ndFeats_list[i].to('cpu')
 				s.node_mask_list[i].to('cpu')
@@ -224,10 +227,13 @@ class Trainer():
 
 			# print('processing one graph time: ',time_end - time_start)
 			# else:
-			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
-			Loss.append(loss)
+			# # 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
+			# Loss.append(loss)
 			# print('current time 7: ', a, time.time())
-		loss = sum(Loss)/len(Loss)
+		prediction = torch.cat(Prediction, dim=0)
+		label = torch.cat(Label, dim=0)
+		# loss = sum(Loss)/len(Loss)
+		loss = self.comp_loss(prediction,label)
 		# backward
 		time_start_back = time.time()
 		# print('current time 8: ', time.time())
