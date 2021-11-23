@@ -91,20 +91,20 @@ class Trainer():
 		# generate the training dataload
 		train_data_load = []
 		time_data_start = time.time()
-		print('[{}] | Training data load start!'.format(self.rank))
+		print('[{},{}] | Training data load start!'.format(os.getpid(), self.rank))
 		for s in self.splitter.train:
 			train_data_load.append(s)
 		time_data_end = time.time()
-		print('[{}] |Training data load end with cost: {}'.format(self.rank, time_data_end - time_data_start))
+		print('[{},{}] |Training data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
 
 		# generate the test dataload
 		test_data_load = []
 		time_data_start = time.time()
-		print('[{}] |Test data load start!'.format(self.rank))
+		print('[{},{}] |Test data load start!'.format(os.getpid(), self.rank))
 		for s in self.splitter.test:
 			test_data_load.append(s)
 		time_data_end = time.time()
-		print('[{}] |Test data load end with cost: {}'.format(self.rank, time_data_end - time_data_start))
+		print('[{},{}] |Test data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
 
 		for e in range(self.args.num_epochs):
 			train_data = iter(copy.deepcopy(train_data_load))  # 使用深拷贝防止数据集处理时被修改
@@ -135,8 +135,8 @@ class Trainer():
 				_, precision, recall, f1, acc = self.run_epoch(test_data, e, 'TEST', grad = False)
 
 				if self.args.distributed:
-					print("[{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}, acc: {}, time cost: {}".format(
-						os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, loss,
+					print("[{},{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}, acc: {}, time cost: {}".format(
+						os.getpid(), self.rank, e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, loss,
 						precision, recall, f1, acc, train_epoch_time_end - train_epoch_time_start))
 				else:
 					print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
