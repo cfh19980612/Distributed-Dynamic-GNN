@@ -233,9 +233,10 @@ class Trainer():
 		prediction = torch.cat(Prediction, dim=0)
 		label = torch.cat(Label, dim=0)
 		# loss = sum(Loss)/len(Loss)
-		loss = self.comp_loss(prediction,label)
+
 		# backward
 		time_start_back = time.time()
+		loss = self.comp_loss(prediction,label)
 		# print('current time 8: ', time.time())
 		if grad:
 			self.optim_step(loss)
