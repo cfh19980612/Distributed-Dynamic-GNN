@@ -199,7 +199,8 @@ class Trainer():
 				s.hist_ndFeats_list[i].to('cpu')
 				s.node_mask_list[i].to('cpu')
 			predictions.cpu()
-			s.label_sp.cpu()
+			s.label_sp['idx'].cpu()
+			s.label_sp['vals'].cpu()
 			#acc = self.compute_acc(predictions, s.label_sp['vals'])
 			# print('Prediction:{}, Label:{}, acc:{}'.format(predictions.size(0),s.label_sp['vals'].size(0), acc))
 
