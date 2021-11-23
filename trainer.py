@@ -225,24 +225,20 @@ class Trainer():
 		time_end_back = time.time()
 
 		time_cost_back += time_end_back - time_start_back
-		time_may_com_1 = time.time()
+
 
 		time_total_end = time.time()
-		time_may_com_2 = time.time()
+
 		print('forwarding graphs: ',time_cost_forward)
 		print('backwarding graphs: ',time_cost_back)
 		print('processing graphs: ',time_total_end - time_total_start)
 		time_other_start = time.time()
 		torch.set_grad_enabled(True)
 		time_other_end = time.time()
-		time_may_com_3 = time.time()
-		print('may communication time 1: ', time_may_com_1 - time_end_back)
-		print('may communication time 2: ', time_may_com_2 - time_end_back)
-		print('may communication time 3: ', time_may_com_3 - time_end_back)
+
 		print('other time: ', time_other_end - time_other_start)
 		# precision, recall, f1 = self.logger.log_epoch_done()
-		time_may_com_4 = time.time()
-		print('may communication time 4: ', time_may_com_4 - time_end_back)
+
 		if set_name=='TEST':
 			# precision, recall, f1 = self.compute_acc()
 			return nodes_embs, precision, recall, f1, acc
