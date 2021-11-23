@@ -243,7 +243,7 @@ def launch(args):
                  nprocs=DIST_DEFAULT_WORLD_SIZE,
                  join=True)
     else:
-        worker(None, args)
+        worker(0, args)
     toc = time.time()
     print(f"Finished in {toc-tic:.2f}s")
 
