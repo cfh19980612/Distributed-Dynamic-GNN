@@ -91,20 +91,20 @@ class Trainer():
 		# generate the training dataload
 		train_data_load = []
 		time_data_start = time.time()
-		print('Training data load start!')
+		print('[{}] | Training data load start!'.format(self.rank))
 		for s in self.splitter.train:
 			train_data_load.append(s)
 		time_data_end = time.time()
-		print('Training data load end with cost ', time_data_end - time_data_start)
+		print('[{}] |Training data load end with cost: {}'.format(self.rank, time_data_end - time_data_start))
 
 		# generate the test dataload
 		test_data_load = []
 		time_data_start = time.time()
-		print('Test data load start!')
+		print('[{}] |Test data load start!'.format(self.rank))
 		for s in self.splitter.test:
 			test_data_load.append(s)
 		time_data_end = time.time()
-		print('Test data load end with cost ', time_data_end - time_data_start)
+		print('[{}] |Test data load end with cost: {}'.format(self.rank, time_data_end - time_data_start))
 
 		for e in range(self.args.num_epochs):
 			train_data = iter(copy.deepcopy(train_data_load))  # 使用深拷贝防止数据集处理时被修改
