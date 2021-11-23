@@ -213,6 +213,7 @@ class Trainer():
 			time_cost_back += time_end_back - time_end_start
 			Loss.append(loss)
 		print('forwarding graphs: ',time_cost_forward)
+		print('Backwarding graphs: ',time_cost_back)
 		torch.set_grad_enabled(True)
 		# precision, recall, f1 = self.logger.log_epoch_done()
 		if set_name=='TEST':
