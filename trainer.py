@@ -160,8 +160,9 @@ class Trainer():
 		Acc = []
 		frac = 0.1  # training set fraction
 		time_cost_forward = 0
+		i = 1
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
-			i = 1
+
 			print(i)
 			i += 1
 			time_start = time.time()
