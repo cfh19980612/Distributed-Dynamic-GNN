@@ -34,7 +34,7 @@ import Cross_Entropy as ce
 import trainer as tr
 
 torch.multiprocessing.set_start_method('spawn',force=True)
-warnings.filterwarnings('ignore')
+# warnings.filterwarnings('ignore')
 
 DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
