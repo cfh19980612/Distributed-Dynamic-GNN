@@ -34,13 +34,13 @@ import Cross_Entropy as ce
 import trainer as tr
 
 torch.multiprocessing.set_start_method('spawn',force=True)
-# warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore')
 
 DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
 DIST_DEFAULT_PORT = '12344'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
-DIST_DEFAULT_WORLD_SIZE = 2
+DIST_DEFAULT_WORLD_SIZE = 1
 
 def build_random_hyper_params(args):
 	if args.model == 'all':
@@ -166,7 +166,7 @@ def worker(rank, args):
 	dataset = build_dataset(args, rank)
 	# print('V:',dataset.num_nodes)
 	# print(dataset.edges['idx'].size(0)/50)
-	dataset.max_time = dataset.max_time - 25
+	dataset.max_time = dataset.max_time - 800
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
 	tasker = build_tasker(args, dataset)
 	print('tasker complete!', tasker.feats_per_node)
