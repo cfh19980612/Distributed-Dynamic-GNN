@@ -198,6 +198,7 @@ class Trainer():
 
 			# release the GPU
 			for i, adj in enumerate(s.hist_adj_list):
+				print(s.hist_adj_list[i].device)
 				s.hist_adj_list[i].to('cpu')
 				s.hist_ndFeats_list[i].to('cpu')
 				s.node_mask_list[i].to('cpu')
