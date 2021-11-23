@@ -175,7 +175,7 @@ class Link_Pred_Tasker():
 
 		# select a fraction of edges as the training set or test set; [sc'2021]
 		# num = int(SCALE*label_adj['vals'].size(0))
-		num = 5000
+		num = 10000
 		label_adj['idx'] = label_adj['idx'][:num,:]
 		label_adj['vals'] = label_adj['vals'][:num]
 		non_exisiting_adj['idx'] = non_exisiting_adj['idx'][:num,:]
