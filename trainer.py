@@ -203,9 +203,6 @@ class Trainer():
 			# loss = self.comp_loss(predictions,s.label_sp['vals'])
 			# print('current time 4: ', a, time.time())
 
-			time_end = time.time()
-			time_cost_forward += time_end - time_start
-
 			# release the GPU
 			for i, adj in enumerate(s.hist_adj_list):
 				s.hist_adj_list[i].to('cpu')
@@ -230,6 +227,8 @@ class Trainer():
 			# # 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
 			# Loss.append(loss)
 			# print('current time 7: ', a, time.time())
+			time_end = time.time()
+			time_cost_forward += time_end - time_start
 			print('rank:{}, subgraph:{}, time cost:{}'.format(self.rank, a, time_end - time_start))
 			a += 1
 		prediction = torch.cat(Prediction, dim=0)
