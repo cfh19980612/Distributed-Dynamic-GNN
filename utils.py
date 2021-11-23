@@ -137,7 +137,7 @@ def create_parser():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--config_file',default='experiments/parameters_example.yaml', type=argparse.FileType(mode='r'), help='optional, yaml file containing parameters to be used, overrides command line parameters')
     parser.add_argument("--local_rank", type=int)
-    parser.add_argument("--distributed", default=False)
+    parser.add_argument("--distributed", default=True)
     return parser
 
 def parse_args(parser):
