@@ -160,6 +160,7 @@ class Trainer():
 		Acc = []
 		frac = 0.1  # training set fraction
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
+			time_start = time.time()
 			if self.tasker.is_static:
 				s = self.prepare_static_sample(s)
 			else:
@@ -197,7 +198,8 @@ class Trainer():
 				# self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach(), adj = s.label_sp['idx'])
 				# precision, recall, f1 = self.compute_acc(predictions, s.label_sp['vals'])
 				precision, recall, f1, acc = self.compute_acc(predictions, s.label_sp['vals'])
-
+			time_end = time.time()
+			print('processing one graph time: ',time_end - time_start)
 			# else:
 			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
 			if grad:
