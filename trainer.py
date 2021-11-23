@@ -194,7 +194,7 @@ class Trainer():
 												   s.node_mask_list)
 			loss = self.comp_loss(predictions,s.label_sp['vals'])
 
-			for i, adj in enumerate(sample.hist_adj_list):
+			for i, adj in enumerate(s.hist_adj_list):
 				s.hist_adj_list[i].to('cpu')
 				s.hist_ndFeats_list[i].to('cpu')
 				s.node_mask_list[i].to('cpu')
