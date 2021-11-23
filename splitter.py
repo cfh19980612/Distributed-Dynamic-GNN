@@ -13,7 +13,7 @@ class splitter():
     '''
     def __init__(self, args, tasker, scale, rank):
         train_total = (tasker.data.max_time + 1 - args.num_hist_steps) * args.train_proportion
-        length = train_total // 4
+        length = train_total // scale
 
         if tasker.is_static: #### For static datsets
             assert args.train_proportion + args.dev_proportion < 1, \

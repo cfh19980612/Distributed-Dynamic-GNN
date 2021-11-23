@@ -40,7 +40,7 @@ DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
 DIST_DEFAULT_PORT = '12344'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
-DIST_DEFAULT_WORLD_SIZE = 4
+DIST_DEFAULT_WORLD_SIZE = 2
 
 def build_random_hyper_params(args):
 	if args.model == 'all':

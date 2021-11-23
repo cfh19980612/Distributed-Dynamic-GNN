@@ -87,12 +87,15 @@ class Trainer():
 		F1 = []
 		time_now = time.time()
 		for e in range(self.args.num_epochs):
+			train_epoch_time_start = time.time()
 			# Namelist = []
 			# for name in self.gcn.state_dict():
 			# 	Namelist.append(name)
 			# # print(Namelist)
 			# print("Name:{} para:{}".format(Namelist[0],self.gcn.state_dict()[Namelist[0]]))
-			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
+			_, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
+			train_epoch_time_end = time.time()
+			print('Epoch time:',train_epoch_time_end - train_epoch_time_start)
 			time_end = time.time()
 			time_spend.append(time_end-time_now)
 			# save the loss
