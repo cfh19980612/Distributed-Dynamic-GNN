@@ -13,7 +13,7 @@ import time
 import warnings
 
 #datasets
-# import bitcoin_dl as bc
+import bitcoin_dl as bc
 # import elliptic_temporal_dl as ell_temp
 # import uc_irv_mess_dl as ucim
 import auto_syst_dl as aus
@@ -21,6 +21,8 @@ import auto_syst_dl as aus
 import sbm_dl as sbm
 #taskers
 import link_pred_tasker as lpt
+import epinion_dl as ep
+import yt_dl as yt
 # import edge_cls_tasker as ect
 # import node_cls_tasker as nct
 
@@ -88,6 +90,10 @@ def build_dataset(args, rankID):
 		elif args.data == 'sbm50':
 			args.sbm_args = args.sbm50_args
 		return sbm.sbm_dataset(args, rankID)
+	elif args.data == 'epinions':
+		return ep.epinion_dataset(args, rankID)
+	elif args.data == 'youtube':
+		return yt.youtube_dataset(args, rankID)
 	else:
 		raise NotImplementedError('only arxiv has been implemented')
 
@@ -144,7 +150,7 @@ def build_classifier(args,tasker):
 	elif args.model == 'skipfeatsgcn' or args.model == 'skipfeatsegcn_h':
 		in_feats = (args.gcn_parameters['layer_2_feats'] + args.gcn_parameters['feats_per_node']) * mult
 	else:
-		in_feats = args.gcn_parameters['layer_2_feats'] * mult
+		in_feats = args.gcn_parameters['layer_2_feats'] * mult  # mult=2 表示边预测任务，每个边的特征为节点对的特征拼接，即100*2， 100 是egcn的输出embedding维度
 
 	return mls.Classifier(args,in_features = in_feats, out_features = tasker.num_classes).to(args.device)
 
@@ -158,11 +164,19 @@ def worker(rank, args):
 
 	# 定义模型和数据集
 	dataset = build_dataset(args, rank)
-	print(dataset.max_time)
+	# print('V:',dataset.num_nodes)
+	# print(dataset.edges['idx'].size(0)/50)
 	dataset.max_time = dataset.max_time - 25
+	print('dataset complete!', dataset.num_nodes, dataset.max_time)
 	tasker = build_tasker(args, dataset)
+	print('tasker complete!', tasker.feats_per_node)
 	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)  #build the splitter
+	print('splitter complete!')
 	gcn = build_gcn(args, tasker)  #build the models
+	# Namelist = []
+	# for name in gcn.named_parameters():
+	# 	Namelist.append(name)
+	# print(Namelist)
 	# print(gcn.parameters())
 	# for p in gcn.parameters():
 	# 	for i in p:

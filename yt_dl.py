@@ -2,9 +2,9 @@ import torch
 import utils as u
 import os
 
-class sbm_dataset():
+class youtube_dataset():
     def __init__(self,args, rankID):
-        assert args.task in ['link_pred'], 'sbm only implements link_pred'  # assert:断言， 当条件不满足直接返回异常
+        assert args.task in ['link_pred'], 'youtube only implements link_pred'  # assert:断言， 当条件不满足直接返回异常
 
         # 定义字典，u.Namespace 将字典中对象的调用改为 dict.object
         self.ecols = u.Namespace({'FromNodeId': 0,
@@ -12,15 +12,16 @@ class sbm_dataset():
                                   'Weight': 2,
                                   'TimeStep': 3
                                 })
-        args.sbm_args = u.Namespace(args.sbm_args)
+        args.youtube_args = u.Namespace(args.youtube_args)
 
         #build edge data structure
         '''
         注：tensor矩阵切片操作
         edges[:,self.ecols.TimeStep] -> 取出edges矩阵的第四列的所有内容，是一维的tensor矩阵
         '''
-        edges = self.load_edges(args.sbm_args, rankID)  # 从文件中按行读取数据，构造成tensor矩阵
-        timesteps = u.aggregate_by_time(edges[:,self.ecols.TimeStep], args.sbm_args.aggr_time)  # 首先取edges矩阵的第四列(对应时刻)所有元素
+        edges = self.load_edges(args.youtube_args, rankID)  # 从文件中按行读取数据，构造成tensor矩阵
+        # timesteps = u.aggregate_by_time(edges[:,self.ecols.TimeStep], args.youtube_args.aggr_time)  # 首先取edges矩阵的第四列(对应时刻)所有元素
+        timesteps = u.generate_time(edges[:,self.ecols.TimeStep])
         self.max_time = timesteps.max()
         self.min_time = timesteps.min()
 
@@ -33,7 +34,7 @@ class sbm_dataset():
         # print(self.edges['idx'].size(0))
         #random node features
         self.num_nodes = int(self.get_num_nodes(edges))  # 统计点的个数
-        self.feats_per_node = args.sbm_args.feats_per_node  # 每个点的特征个数
+        self.feats_per_node = args.youtube_args.feats_per_node  # 每个点的特征个数
         self.nodes_feats = torch.rand((self.num_nodes,self.feats_per_node))  # 随机生成点的特征（不随时刻变化？？？）
         self.num_non_existing = self.num_nodes ** 2 - edges.size(0)  # ？？？
 
@@ -66,13 +67,13 @@ class sbm_dataset():
         num_nodes = all_ids.max() + 1
         return num_nodes
 
-    def load_edges(self, sbm_args, rankID, starting_line = 1):
-        file = os.path.join(sbm_args.folder,sbm_args.edges_file)
+    def load_edges(self, youtube_args, rankID, starting_line = 1):
+        file = os.path.join(youtube_args.folder,youtube_args.edges_file)
         with open(file) as f:
             lines = f.read().splitlines()
             # if rankID == 0: lines = lines[:2507303]
             # if rankID == 1: lines = lines[2507302:]
-        edges = [[float(r) for r in row.split(',')] for row in lines[starting_line:]]
+        edges = [[float(r) for r in row.split(' ')] for row in lines[starting_line:]]
 
         # key point: torch.tensor(data) 是一个函数，将data数据根据类型转换为tensor张量，而torch.Tensor是类
         edges = torch.tensor(edges,dtype = torch.long)

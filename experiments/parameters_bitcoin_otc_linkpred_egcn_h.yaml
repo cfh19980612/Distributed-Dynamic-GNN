@@ -1,4 +1,4 @@
-data: bitcoinalpha  # bitcoinalpha bitcoinotc
+data: bitcoinotc  # bitcoinalpha bitcoinotc
 
 bitcoinotc_args:
   folder: ./data/
@@ -21,9 +21,9 @@ save_node_embeddings: False
 train_proportion: 0.7 # with train_proportion: 0.715 we have the 70/30% of actual splits on the 50 timesteps
 dev_proportion: 0.1
 
-num_epochs: 500 #number of passes though the data
+num_epochs: 40 #number of passes though the data
 steps_accum_gradients: 1
-learning_rate: 	0.005
+learning_rate: 0.005
 learning_rate_min: 0.005
 learning_rate_max: 0.05
 negative_mult_training: 100
@@ -34,7 +34,7 @@ target_measure: MAP # measure to define the best epoch F1, Precision, Recall, MR
 target_class: 1 # Target class to get the measure to define the best epoch (all, 0, 1)
 early_stop_patience: 50
 
-eval_after_epochs: 5
+eval_after_epochs: 1
 adj_mat_time_window: 1  # Time window to create the adj matrix for each timestep. Use None to use all the history (from 0 to t)
 # adj_mat_time_window_min: 1
 # adj_mat_time_window_max: 10

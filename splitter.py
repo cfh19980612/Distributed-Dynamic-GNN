@@ -13,7 +13,7 @@ class splitter():
     '''
     def __init__(self, args, tasker, scale, rank):
         train_total = (tasker.data.max_time + 1 - args.num_hist_steps) * args.train_proportion
-        length = train_total // scale
+        length = train_total // 4
 
         if tasker.is_static: #### For static datsets
             assert args.train_proportion + args.dev_proportion < 1, \
@@ -71,7 +71,7 @@ class splitter():
             end = int(length.item()) + start
             train = data_split(tasker, start, end, test = False)
             train = DataLoader(train,**args.data_loading_params)
-            print(start,end)
+            # print(start,end)
             # dev
             start = int(np.floor(train_total)) + args.num_hist_steps
             end = args.dev_proportion
@@ -81,7 +81,7 @@ class splitter():
             else:
                 dev = data_split(tasker, start, end, test = True)
             dev = DataLoader(dev,num_workers=args.data_loading_params['num_workers'])
-            print(start,end)
+            # print(start,end)
             # test
             start = end
             #the +1 is because I assume that max_time exists in the dataset
@@ -91,7 +91,7 @@ class splitter():
             else:
                 test = data_split(tasker, start, end, test = True)
             test = DataLoader(test,num_workers=args.data_loading_params['num_workers'])
-            print(start,end)
+            # print(start,end)
             print ('Dataset splits sizes:  train',len(train), 'dev',len(dev), 'test',len(test))
 
             self.tasker = tasker

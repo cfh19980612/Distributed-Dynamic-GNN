@@ -5,6 +5,7 @@ import utils as u
 import functools
 import dill
 
+SCALE = 0.1
 
 class Link_Pred_Tasker():
 	'''
@@ -38,7 +39,7 @@ class Link_Pred_Tasker():
 		if args.use_2_hot_node_feats:
 			max_deg_out, max_deg_in = tu.get_max_degs(self.args, self.data)  # 统计所有时刻最大的入度和出度
 			self.feats_per_node = max_deg_out + max_deg_in
-		elif args.use_1_hot_node_feats:
+		elif args.use_1_hot_node_feats: # 针对无向图，点的特征长度为最大的度
 			max_deg,_ = tu.get_max_degs(self.args, self.data)
 			self.feats_per_node = max_deg
 
@@ -110,7 +111,7 @@ class Link_Pred_Tasker():
 	# 	return get_node_feats
 
 
-	def get_sample(self,idx,test, **kwargs):
+	def get_sample(self, idx, test, **kwargs):
 		hist_adj_list = []  # 历史邻接矩阵列表，每一个元素为一个时刻下的邻接矩阵
 		hist_ndFeats_list = []  # 历史节点特征列表，每一个元素为一个NxF的矩阵
 		hist_mask_list = []  # 历史掩码列表
@@ -137,10 +138,14 @@ class Link_Pred_Tasker():
 			hist_mask_list.append(node_mask)
 
 		# This would be if we were training on all the edges in the time_window
-		label_adj = tu.get_sp_adj(edges = self.data.edges, 
-								  time = idx+1,
-								  weighted = False,
-								  time_window =  self.args.adj_mat_time_window)
+		# label_adj = tu.get_sp_adj(edges = self.data.edges,
+		# 						  time = idx+1,    # 获取idx+1时刻图的label
+		# 						  weighted = False,
+		# 						  time_window =  self.args.adj_mat_time_window)
+
+		# 只计算最后一时刻图的边
+		label_adj = tu.get_edge_labels(edges=self.data.edges,
+										time = idx+1)
 		if test:
 			neg_mult = self.args.negative_mult_test
 		else:
@@ -149,24 +154,42 @@ class Link_Pred_Tasker():
 		if self.args.smart_neg_sampling:
 			existing_nodes = torch.cat(existing_nodes)
 
-		if 'all_edges' in kwargs.keys() and kwargs['all_edges'] == True:
-			non_exisiting_adj = tu.get_all_non_existing_edges(adj = label_adj, tot_nodes = self.data.num_nodes)
-		else:
-			non_exisiting_adj = tu.get_non_existing_edges(adj = label_adj,
-													  number = label_adj['vals'].size(0) * neg_mult,
+		# 构造负样本,即不存在边的点对
+		# if 'all_edges' in kwargs.keys() and kwargs['all_edges'] == True:
+		# 	non_exisiting_adj = tu.get_all_non_existing_edges(adj = label_adj, tot_nodes = self.data.num_nodes)
+		# else:
+		# 	non_exisiting_adj = tu.get_non_existing_edges(adj = label_adj,
+		# 											  number = 5000,
+		# 											  tot_nodes = self.data.num_nodes,
+		# 											  smart_sampling = self.args.smart_neg_sampling,
+		# 											  existing_nodes = existing_nodes)
+
+		non_exisiting_adj = tu.get_non_existing_edges(adj = label_adj,
+													  number = 5000,
 													  tot_nodes = self.data.num_nodes,
 													  smart_sampling = self.args.smart_neg_sampling,
 													  existing_nodes = existing_nodes)
-
 		# label_adj = tu.get_sp_adj_only_new(edges = self.data.edges,
 		# 								   weighted = False,
 		# 								   time = idx)
 
-		label_adj['idx'] = torch.cat([label_adj['idx'],non_exisiting_adj['idx']])
-		label_adj['vals'] = torch.cat([label_adj['vals'],non_exisiting_adj['vals']])
+		# select a fraction of edges as the training set or test set; [sc'2021]
+		# num = int(SCALE*label_adj['vals'].size(0))
+		num = 5000
+		label_adj['idx'] = label_adj['idx'][:num,:]
+		label_adj['vals'] = label_adj['vals'][:num]
+		non_exisiting_adj['idx'] = non_exisiting_adj['idx'][:num,:]
+		non_exisiting_adj['vals'] = non_exisiting_adj['vals'][:num]
+
+		label_adj_all = {}
+		label_adj_all['idx'] = torch.cat([label_adj['idx'],non_exisiting_adj['idx']])
+		label_adj_all['vals'] = torch.cat([label_adj['vals'],non_exisiting_adj['vals']])
+
 		return {'idx': idx,
 				'hist_adj_list': hist_adj_list,
 				'hist_ndFeats_list': hist_ndFeats_list,
-				'label_sp': label_adj,
+				'label_sp_pos': label_adj,
+				'label_sp_neg': non_exisiting_adj,
+				'label_sp': label_adj_all,
 				'node_mask_list': hist_mask_list}
 

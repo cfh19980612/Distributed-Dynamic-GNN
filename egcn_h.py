@@ -4,7 +4,7 @@ from torch.nn.parameter import Parameter
 import torch.nn as nn
 import math
 from collections import OrderedDict
-
+from torch.nn import init
 '''
 注： EGCN用来预测时序输出，即输入一个时序图，预测最后一时刻的图上的节点embedding
 ->  在构造训练，验证和测试集时，数据集中每一个数据都是某一时刻的图，在传入EGCN之前
@@ -72,30 +72,51 @@ class GRCU(torch.nn.Module):
         self.evolve_weights = mat_GRU_cell(cell_args,layer)  # 实例化，每个GRU的计算为mat_GRU_cell实例: 利用上一时刻的GCN权重计算该时刻的GCN权重矩阵
 
         self.activation = self.args.activation  # 激活函数
-        self.GCN_init_weights = Parameter(torch.Tensor(self.args.in_feats,self.args.out_feats))  # 创建GCN的权重参数
+        self.GCN_init_weights = Parameter(torch.Tensor(self.args.in_feats,self.args.out_feats))  # 创建GCN的权重参数,时刻0的参数，后续时刻的GCN参数都是算出来的
+        # self.GCN_init_weights = gcn(self.args)
         self.reset_param(self.GCN_init_weights)  # 初始化GCN权重参数
-        PARAMETER_DICT['Layer-{} GCN'.format(layer)] = self.GCN_init_weights
+        # PARAMETER_DICT['Layer-{} GCN'.format(layer)] = self.GCN_init_weights
 
     def reset_param(self,t):
         #Initialize based on the number of columns
         stdv = 1. / math.sqrt(t.size(1))
-        t.data.uniform_(-stdv,stdv)
+        # t.data.uniform_(-stdv,stdv)
+        init.xavier_uniform_(t)
+
     # def parameters(self):
     #     return self.GCN_init_weights
     # l+1层前向
     def forward(self,A_list,node_embs_list,mask_list):
+        # Namelist = []
+        # for name in self.GCN_init_weights.state_dict():
+        #     Namelist.append(name)
+        # print(Namelist)
+        # GCN_weights = self.GCN_init_weights.state_dict()['w']
         GCN_weights = self.GCN_init_weights
+        # print(GCN_weights)
         out_seq = []  #该层的输出embedding列表
         weight_seq = []
         for t,Ahat in enumerate(A_list): # 计算t时刻的隐藏状态（该时刻GCN的参数）以及节点embedding
             node_embs = node_embs_list[t] # 读取t时刻的上一层节点特征H_t^l
             #first evolve the weights from the initial and use the new weights with the node_embs
+            # print('before:',GCN_weights)
             GCN_weights = self.evolve_weights(GCN_weights,node_embs,mask_list[t])  # GRU计算
+            # print('after:',GCN_weights)
             node_embs = self.activation(Ahat.matmul(node_embs.matmul(GCN_weights)))  # GCN计算：A^XW
-
+            # node_embs = self.activation(self.GCN_init_weights(node_embs, Ahat))
             out_seq.append(node_embs)  # 输出该层该时刻的节点输出，加入到该层的输出embedding列表中
 
         return out_seq  # 返回该层【0~t+1】时刻的图节点embedding
+
+class gcn(torch.nn.Module):
+    def __init__(self,args):
+        super(gcn,self).__init__()
+        self.args = args
+        self.w = Parameter(torch.Tensor(self.args.in_feats,self.args.out_feats))
+        self.reset_param(self.w)
+    def reset_param(self,t):
+        init.xavier_uniform_(t)
+
 
 class mat_GRU_cell(torch.nn.Module):
     def __init__(self,args,layer):  # 传入的参数为GCN权重参数的行和列，用来定义GRU的权重参数维度，因为GRU的输入为GCN的权重参数
@@ -151,7 +172,8 @@ class mat_GRU_gate(torch.nn.Module):
     def reset_param(self,t):
         #Initialize based on the number of columns
         stdv = 1. / math.sqrt(t.size(1))
-        t.data.uniform_(-stdv,stdv)
+        # t.data.uniform_(-stdv,stdv)
+        init.xavier_uniform_(t)
 
     def forward(self,x,hidden):  # x: 该时刻上一层（l）节点embedding的k列； hidden:上一时刻的GCN权重参数
         out = self.activation(self.W.matmul(x) + \
@@ -171,7 +193,8 @@ class TopK(torch.nn.Module):
     def reset_param(self,t):
         #Initialize based on the number of rows
         stdv = 1. / math.sqrt(t.size(0))
-        t.data.uniform_(-stdv,stdv)
+        # t.data.uniform_(-stdv,stdv)
+        init.xavier_uniform_(t)
 
     def forward(self,node_embs,mask):
 

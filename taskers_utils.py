@@ -100,7 +100,7 @@ def get_sp_adj(edges,time,weighted,time_window):
     # 根据时刻mask索引出边的起点和终点(tensor矩阵)，生成稀疏矩阵
     idx = edges['idx'][subset][:,[ECOLS.source, ECOLS.target]]
     vals = edges['vals'][subset]
-    out = torch.sparse.FloatTensor(idx.t(),vals).coalesce()
+    out = torch.sparse.FloatTensor(idx.t(),vals).coalesce()   # 稀疏矩阵转稠密矩阵
 
     idx = out._indices().t()
     if weighted:
@@ -108,13 +108,24 @@ def get_sp_adj(edges,time,weighted,time_window):
     else:
         vals = torch.ones(idx.size(0),dtype=torch.long)
 
-    return {'idx': idx, 'vals': vals}
+    return {'idx': idx, 'vals': vals}  # 返回稀疏矩阵
 
-def get_edge_labels(edges,time):
+# 最后一时刻的边label
+def get_edge_labels(edges,time,number = None):
     idx = edges['idx']
     subset = idx[:,ECOLS.time] == time
-    idx = edges['idx'][subset][:,[ECOLS.source, ECOLS.target]]  
-    vals = edges['idx'][subset][:,ECOLS.label]
+    idx = edges['idx'][subset][:,[ECOLS.source, ECOLS.target]]
+    vals = edges['vals'][subset]
+    if number is not None:
+        idx = idx[:,:number]
+        vals = vals[:,:number]
+    out = torch.sparse.FloatTensor(idx.t(),vals).coalesce()
+    idx = out._indices().t()
+
+    vals = torch.ones(idx.size(0),dtype=torch.float64)
+
+
+    # vals = edges['idx'][subset][:,ECOLS.label]
 
     return {'idx': idx, 'vals': vals}
 
@@ -192,7 +203,7 @@ def get_all_non_existing_edges(adj,tot_nodes):
 
     non_existing_edges_idx = all_edges_idx[:,mask]
     edges = torch.tensor(non_existing_edges_idx).t()
-    vals = torch.zeros(edges.size(0), dtype = torch.long)
+    vals = torch.zeros(edges.size(0),dtype=torch.float64)
     return {'idx': edges, 'vals': vals}
 
 
@@ -214,7 +225,7 @@ def get_non_existing_edges(adj,number, tot_nodes, smart_sampling, existing_nodes
             from_id = np.random.choice(idx[0],size = num_edges,replace = True)
             to_id = np.random.choice(existing_nodes,size = num_edges, replace = True)
             #print ('smart_sampling', from_id, to_id)
-            
+
             if num_edges>1:
                 edges = np.stack([from_id,to_id])
             else:
@@ -231,7 +242,7 @@ def get_non_existing_edges(adj,number, tot_nodes, smart_sampling, existing_nodes
     edges = sample_edges(num_edges*4)
 
     edge_ids = edges[0] * tot_nodes + edges[1]
-    
+
     out_ids = set()
     num_sampled = 0
     sampled_indices = []
@@ -252,7 +263,7 @@ def get_non_existing_edges(adj,number, tot_nodes, smart_sampling, existing_nodes
 
     edges = edges[:,sampled_indices]
     edges = torch.tensor(edges).t()
-    vals = torch.zeros(edges.size(0),dtype = torch.long)
+    vals = torch.zeros(edges.size(0),dtype = torch.float)
     return {'idx': edges, 'vals': vals}
 
 def get_edges_ids(sp_idx, tot_nodes):

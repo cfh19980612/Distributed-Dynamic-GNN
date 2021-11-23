@@ -172,7 +172,8 @@ class Sp_GCN_GRU_B(Sp_GCN_LSTM_B):
 class Classifier(torch.nn.Module):
     def __init__(self,args,out_features=2, in_features = None):
         super(Classifier,self).__init__()
-        activation = torch.nn.ReLU()
+        self.activation1 = torch.nn.ReLU()
+        self.activation2 = torch.nn.Softmax()
 
         if in_features is not None:
             num_feats = in_features
@@ -183,11 +184,22 @@ class Classifier(torch.nn.Module):
             num_feats = args.gcn_parameters['layer_2_feats'] * 2
         print ('CLS num_feats',num_feats)
 
-        self.mlp = torch.nn.Sequential(torch.nn.Linear(in_features = num_feats,
-                                                       out_features =args.gcn_parameters['cls_feats']),
-                                       activation,
-                                       torch.nn.Linear(in_features = args.gcn_parameters['cls_feats'],
-                                                       out_features = out_features))
-
+        # self.mlp = torch.nn.Sequential(torch.nn.Linear(in_features = num_feats,
+        #                                                out_features =args.gcn_parameters['cls_feats']),
+        #                                activation1,
+        #                                torch.nn.Linear(in_features = args.gcn_parameters['cls_feats'],
+        #                                                out_features = out_features),
+        #                                activation2)
+        self.layer_1 = torch.nn.Linear(in_features = num_feats, out_features =args.gcn_parameters['cls_feats'])
+        self.layer_2 = torch.nn.Linear(in_features = args.gcn_parameters['cls_feats'], out_features = out_features)
     def forward(self,x):
-        return self.mlp(x)
+        # x = x*100000
+        x = self.layer_1(x)
+
+        x = self.activation1(x)
+
+        x = self.layer_2(x)
+
+        # x = self.activation2(x)
+
+        return x

@@ -28,11 +28,11 @@ dev_proportion: 0.1
 
 num_epochs: 40
 steps_accum_gradients: 1
-learning_rate: 0.005 # use None to pick a random number between learning_rate_min and learning_rate_max
+learning_rate: 0.01 # use None to pick a random number between learning_rate_min and learning_rate_max
 learning_rate_min: 0.0001
 learning_rate_max: 0.1
-negative_mult_training: 50
-negative_mult_test: 100
+negative_mult_training: 0.1  # origin 50
+negative_mult_test: 0.1  # origin 100
 smart_neg_sampling: True
 seed: 1234
 target_measure: MAP # measure to define the best epoch F1, Precision, Recall, MRR, MAP

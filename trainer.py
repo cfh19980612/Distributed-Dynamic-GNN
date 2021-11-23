@@ -6,6 +6,14 @@ import pandas as pd
 import numpy as np
 import os
 
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import f1_score
+
+import torch.nn.functional as F
+
 class Trainer():
 	def __init__(self,args, splitter, gcn, classifier, comp_loss, dataset, num_classes, device, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD, rank):
 		self.args = args
@@ -19,9 +27,12 @@ class Trainer():
 		self.data = dataset  # 完整数据集（无调用）
 		self.num_classes = num_classes  # 总类别数
 
-		self.logger = logger.Logger(args, self.num_classes)
+		# self.logger = logger.Logger(args, self.num_classes)
 
 		self.init_optimizers(args)  #初始化优化器
+
+		self.valid_measure = u.Measure(num_classes=num_classes, target_class=1)
+		self.test_measure = u.Measure(num_classes=num_classes, target_class=1)
 
 		self.device = device
 		self.DIST_DEFAULT_WORLD_SIZE = DIST_DEFAULT_WORLD_SIZE
@@ -76,7 +87,12 @@ class Trainer():
 		F1 = []
 		time_now = time.time()
 		for e in range(self.args.num_epochs):
-			Loss, nodes_embs, precision, recall, f1 = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
+			# Namelist = []
+			# for name in self.gcn.state_dict():
+			# 	Namelist.append(name)
+			# # print(Namelist)
+			# print("Name:{} para:{}".format(Namelist[0],self.gcn.state_dict()[Namelist[0]]))
+			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
 			time_end = time.time()
 			time_spend.append(time_end-time_now)
 			# save the loss
@@ -96,13 +112,19 @@ class Trainer():
 			assert len(self.splitter.test)>0, \
                 'there\'s no test samples'
 			if len(self.splitter.test)>0 and e>=self.args.eval_after_epochs-1 and self.rank == 0:
-				Loss, nodes_embs_test, precision, recall, f1 = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
+				_, nodes_embs_test, precision, recall, f1, acc = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
+				# precision = 1
+				# recall = 1
+				# f1 = 1
+				# acc = '?'
 				if self.args.distributed:
 				# Namelist = []
 				# for name in self.gcn.state_dict():
 				# 	Namelist.append(name)
-					print("[{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}".format(
-						os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, sum(Loss), precision, recall, f1))
+					# print("[{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}, acc: {}".format(
+					# 	os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, sum(Loss), precision, recall, f1, acc))
+					print("[{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}, acc: {}".format(
+						os.getpid(), e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, sum(Loss), precision, recall, f1, acc))
 				else:
 					print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
 
@@ -129,46 +151,81 @@ class Trainer():
 		log_interval=999
 		if set_name=='TEST':
 			log_interval=1
-		self.logger.log_epoch_start(epoch, len(split), set_name, minibatch_log_interval=log_interval)
+		# self.logger.log_epoch_start(epoch, len(split), set_name, minibatch_log_interval=log_interval)
 		Loss = []
 		torch.set_grad_enabled(grad)
+		Acc = []
+		frac = 0.1  # training set fraction
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
 			if self.tasker.is_static:
 				s = self.prepare_static_sample(s)
 			else:
 				s = self.prepare_sample(s)  #将稀疏矩阵转为稠密矩阵，用来计算
 
-			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,
-												   s.hist_ndFeats_list,
-												   s.label_sp['idx'],
-												   s.node_mask_list)
+			# for computing auc
+			# # positive prediction
+			# predictions_pos, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
+			# 									   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
+			# 									   s.label_sp_pos['idx'],              # s.label_sp['idx] 训练节点序号
+			# 									   s.node_mask_list)
+			# # negative prediction
+			# predictions_neg, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
+			# 									   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
+			# 									   s.label_sp_neg['idx'],              # s.label_sp['idx] 训练节点序号
+			# 									   s.node_mask_list)
+			# # print(predictions_pos.size())
+			# # compute loss
+			# scores = torch.cat([predictions_pos.squeeze(1), predictions_neg.squeeze(1)])
+			# labels = torch.cat([s.label_sp_pos['vals'], s.label_sp_neg['vals']]).type_as(scores)
+			# loss = F.binary_cross_entropy_with_logits(scores, labels)
+			# print(predictions.size(0), s.label_sp['idx'].size(1), s.label_sp['vals'].size(0))
 
+			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
+												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
+												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
+												   s.node_mask_list)
 			loss = self.comp_loss(predictions,s.label_sp['vals'])
-			# print(loss)
+
+			#acc = self.compute_acc(predictions, s.label_sp['vals'])
+			# print('Prediction:{}, Label:{}, acc:{}'.format(predictions.size(0),s.label_sp['vals'].size(0), acc))
+
+			# 计算recall和f1
 			if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred' and self.rank == 0:
-				self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach(), adj = s.label_sp['idx'])
-			else:
-				self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
+				# self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach(), adj = s.label_sp['idx'])
+				# precision, recall, f1 = self.compute_acc(predictions, s.label_sp['vals'])
+				precision, recall, f1, acc = self.compute_acc(predictions, s.label_sp['vals'])
+
+			# else:
+			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
 			if grad:
 				self.optim_step(loss)
 			Loss.append(loss)
 
 		torch.set_grad_enabled(True)
-		precision, recall, f1 = self.logger.log_epoch_done()
-
-		return Loss, nodes_embs, precision, recall, f1
+		# precision, recall, f1 = self.logger.log_epoch_done()
+		if set_name=='TEST':
+			# precision, recall, f1 = self.compute_acc()
+			return Loss, nodes_embs, precision, recall, f1, acc
+		else:
+			return Loss, nodes_embs
 
 	def predict(self,gcn,hist_adj_list,hist_ndFeats_list,node_indices,mask_list):
 
+		# 返回最后一时刻的图节点embeddings
 		nodes_embs = gcn(hist_adj_list,
 							  hist_ndFeats_list,
 							  mask_list)
 
-		predict_batch_size = 100000
+		predict_batch_size = 128
 		gather_predictions=[]
+
+		# print(nodes_embs,node_indices)
 		for i in range(1 +(node_indices.size(1)//predict_batch_size)):
-			cls_input = self.gather_node_embs(nodes_embs, node_indices[:, i*predict_batch_size:(i+1)*predict_batch_size])
+			cls_input = self.gather_node_embs(nodes_embs, node_indices[:, i*predict_batch_size:(i+1)*predict_batch_size])  # 生成一个batch的边embedding
+
 			predictions = self.classifier(cls_input)
+			# if i == 0:
+			# 	print(i,cls_input,predictions)
 			gather_predictions.append(predictions)
 		gather_predictions=torch.cat(gather_predictions, dim=0)
 		return gather_predictions, nodes_embs
@@ -178,7 +235,7 @@ class Trainer():
 
 		for node_set in node_indices:
 			cls_input.append(nodes_embs[node_set])
-		return torch.cat(cls_input,dim = 1)
+		return torch.cat(cls_input,dim = 1)  # cls_input列表有两个元素，第一个元素存储边起始点的特征矩阵，第二个元素存储边终点的特征矩阵，使用cat函数将起始点和终点的特征拼接
 
 	def optim_step(self,loss):
 		self.tr_step += 1
@@ -203,9 +260,31 @@ class Trainer():
 			node_mask = sample.node_mask_list[i]
 			sample.node_mask_list[i] = node_mask.to(self.device).t() #transposed to have same dimensions as scorer
 
-		label_sp = self.ignore_batch_dim(sample.label_sp)
+		# # prepare positive edges'label
+		# label_sp_pos = self.ignore_batch_dim(sample.label_sp_pos)
+		# if self.args.task in ["link_pred", "edge_cls"]:
+		# 	# 原始的label稀疏矩阵为[[source,target], [sorce,target]],需要转换为[[source_set], [target_Set]]方便获取对应点的特征
+		# 	label_sp_pos['idx'] = label_sp_pos['idx'].to(self.device).t()   ####### ALDO TO CHECK why there was the .t() -----> because I concatenate embeddings when there are pairs of them, the embeddings are row vectors after the transpose
+		# else:
+		# 	label_sp_pos['idx'] = label_sp_pos['idx'].to(self.device)
 
+		# label_sp_pos['vals'] = label_sp_pos['vals'].type(torch.long).to(self.device)
+		# sample.label_sp_pos = label_sp_pos
+
+		# # prepare negative edges'label
+		# label_sp_neg = self.ignore_batch_dim(sample.label_sp_neg)
+		# if self.args.task in ["link_pred", "edge_cls"]:
+		# 	# 原始的label稀疏矩阵为[[source,target], [sorce,target]],需要转换为[[source_set], [target_Set]]方便获取对应点的特征
+		# 	label_sp_neg['idx'] = label_sp_neg['idx'].to(self.device).t()   ####### ALDO TO CHECK why there was the .t() -----> because I concatenate embeddings when there are pairs of them, the embeddings are row vectors after the transpose
+		# else:
+		# 	label_sp_neg['idx'] = label_sp_neg['idx'].to(self.device)
+
+		# label_sp_neg['vals'] = label_sp_neg['vals'].type(torch.long).to(self.device)
+		# sample.label_sp_neg = label_sp_neg
+
+		label_sp = self.ignore_batch_dim(sample.label_sp)
 		if self.args.task in ["link_pred", "edge_cls"]:
+			# 原始的label稀疏矩阵为[[source,target], [sorce,target]],需要转换为[[source_set], [target_Set]]方便获取对应点的特征
 			label_sp['idx'] = label_sp['idx'].to(self.device).t()   ####### ALDO TO CHECK why there was the .t() -----> because I concatenate embeddings when there are pairs of them, the embeddings are row vectors after the transpose
 		else:
 			label_sp['idx'] = label_sp['idx'].to(self.device)
@@ -244,6 +323,26 @@ class Trainer():
 
 		pd.DataFrame(np.array(csv_node_embs)).to_csv(file_name, header=None, index=None, compression='gzip')
 		#print ('Node embs saved in',file_name)
+
+	def compute_auc(self, predictions_pos, predictions_neg, labels):
+		# acc = 0
+		# for i in range(label.size(0)):
+		# 	if prediction[1].data.max(0)[1] == label[i].data:
+		# 		acc += 1
+		# # print(acc)
+		# return float(acc/label.size(0))
+		# pos = prediction[:5000,0:1]
+		# neg = prediction[5000:,1:2]
+		Pre = torch.cat([predictions_pos,predictions_neg]).cpu().numpy()
+		return roc_auc_score(labels.cpu().numpy(),Pre)
+
+	def compute_acc(self, predictions, labels):
+		predicted_classes = predictions.argmax(dim=1)
+		precision = precision_score(labels.cpu(), predicted_classes.cpu(), average='binary')
+		recall = recall_score(labels.cpu(), predicted_classes.cpu(), average='binary')
+		f1 = f1_score(labels.cpu(), predicted_classes.cpu(), average='binary')
+		acc = accuracy_score(labels.cpu(), predicted_classes.cpu())
+		return precision, recall, f1, acc
 
 	# def log_info():
 	# 	for cl in range(self.num_classes):
