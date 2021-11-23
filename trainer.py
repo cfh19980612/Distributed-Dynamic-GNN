@@ -216,7 +216,7 @@ class Trainer():
 				precision, recall, f1, acc = self.compute_acc(predictions, s.label_sp['vals'])
 
 		# average training loss
-		loss = sum(Loss)/len(Loss)
+		loss = sum(Loss)
 
 		torch.set_grad_enabled(True)
 
