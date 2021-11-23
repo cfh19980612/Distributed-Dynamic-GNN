@@ -241,6 +241,8 @@ class Trainer():
 		print('may communication time 3: ', time_may_com_3 - time_end_back)
 		print('other time: ', time_other_end - time_other_start)
 		# precision, recall, f1 = self.logger.log_epoch_done()
+		time_may_com_4 = time.time()
+		print('may communication time 4: ', time_may_com_4 - time_end_back)
 		if set_name=='TEST':
 			# precision, recall, f1 = self.compute_acc()
 			return nodes_embs, precision, recall, f1, acc
