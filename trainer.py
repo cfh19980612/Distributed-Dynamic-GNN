@@ -93,7 +93,7 @@ class Trainer():
 			# 	Namelist.append(name)
 			# # print(Namelist)
 			# print("Name:{} para:{}".format(Namelist[0],self.gcn.state_dict()[Namelist[0]]))
-			_, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
+			Loss, nodes_embs = self.run_epoch(self.splitter.train, e, 'TRAIN', grad = True)  # 训练一个epoch，参数(训练集，epochID，‘Train’，梯度求解)
 			train_epoch_time_end = time.time()
 			print('Epoch time:',train_epoch_time_end - train_epoch_time_start)
 			time_end = time.time()
