@@ -161,6 +161,8 @@ class Trainer():
 		frac = 0.1  # training set fraction
 		time_cost_forward = 0
 		time_cost_back = 0
+		time_total_start = time.time()
+		total_loss = []
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
 			time_start = time.time()
 			if self.tasker.is_static:
@@ -206,15 +208,22 @@ class Trainer():
 			# print('processing one graph time: ',time_end - time_start)
 			# else:
 			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
-			time_end_start = time.time()
-			if grad:
-				self.optim_step(loss)
-			time_end_back = time.time()
-			time_cost_back += time_end_back - time_end_start
 			Loss.append(loss)
+		loss = sum(Loss)/len(Loss)
+		time_start_back = time.time()
+		if grad:
+			self.optim_step(loss)
+		time_end_back = time.time()
+		time_cost_back += time_end_back - time_start_back
+
+		time_total_end = time.time()
 		print('forwarding graphs: ',time_cost_forward)
-		print('Backwarding graphs: ',time_cost_back)
+		print('backwarding graphs: ',time_cost_back)
+		print('processing graphs: ',time_total_end - time_total_start)
+		time_other_start = time.time()
 		torch.set_grad_enabled(True)
+		time_other_end = time.time()
+		print('other time: ', time_other_end - time_other_start)
 		# precision, recall, f1 = self.logger.log_epoch_done()
 		if set_name=='TEST':
 			# precision, recall, f1 = self.compute_acc()

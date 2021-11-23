@@ -166,7 +166,7 @@ def worker(rank, args):
 	dataset = build_dataset(args, rank)
 	# print('V:',dataset.num_nodes)
 	# print(dataset.edges['idx'].size(0)/50)
-	dataset.max_time = dataset.max_time
+	dataset.max_time = dataset.max_time - 25
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
 	tasker = build_tasker(args, dataset)
 	print('tasker complete!', tasker.feats_per_node)
@@ -246,7 +246,6 @@ def launch(args):
         worker(0, args)
     toc = time.time()
     print(f"Finished in {toc-tic:.2f}s")
-
 
 # 主函数
 if __name__ == '__main__':

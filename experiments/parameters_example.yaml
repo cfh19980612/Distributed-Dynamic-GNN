@@ -42,7 +42,7 @@ early_stop_patience: 50
 
 eval_after_epochs: 1 # Epoch for the first validation (avoid the first epochs to save time)
 adj_mat_time_window: 1  # Time window to create the adj matrix for each timestep. Use None to use all the history (from 0 to t)
-num_hist_steps: 5
+num_hist_steps: 2
 num_hist_steps_min: 1 # only used if num_hist_steps: None
 num_hist_steps_max: 10 # only used if num_hist_steps: None
 
