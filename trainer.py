@@ -230,6 +230,8 @@ class Trainer():
 			# # 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
 			# Loss.append(loss)
 			# print('current time 7: ', a, time.time())
+			print('rank:{}, subgraph:{}, time cost:{}'.format(self.rank, a, time_end - time_start))
+			a += 1
 		prediction = torch.cat(Prediction, dim=0)
 		label = torch.cat(Label, dim=0)
 		# loss = sum(Loss)/len(Loss)
