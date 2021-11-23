@@ -98,6 +98,7 @@ class Trainer():
 			print('Epoch time:',train_epoch_time_end - train_epoch_time_start)
 			time_end = time.time()
 			time_spend.append(time_end-time_now)
+			loss.append(sum(Loss).item())
 			# save the loss
 
 			# #  是否执行验证集
@@ -115,7 +116,7 @@ class Trainer():
 			assert len(self.splitter.test)>0, \
                 'there\'s no test samples'
 			if len(self.splitter.test)>0 and e>=self.args.eval_after_epochs-1 and self.rank == 0:
-				_, nodes_embs_test, precision, recall, f1, acc = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
+				nodes_embs_test, precision, recall, f1, acc = self.run_epoch(self.splitter.test, e, 'TEST', grad = False)
 				# precision = 1
 				# recall = 1
 				# f1 = 1
@@ -132,7 +133,6 @@ class Trainer():
 					print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
 
 				# save the output
-				loss.append(sum(Loss).item())
 				Precision.append(precision)
 				Recall.append(recall)
 				F1.append(f1)
@@ -208,7 +208,7 @@ class Trainer():
 		# precision, recall, f1 = self.logger.log_epoch_done()
 		if set_name=='TEST':
 			# precision, recall, f1 = self.compute_acc()
-			return Loss, nodes_embs, precision, recall, f1, acc
+			return nodes_embs, precision, recall, f1, acc
 		else:
 			return Loss, nodes_embs
 
