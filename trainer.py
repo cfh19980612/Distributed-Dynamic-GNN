@@ -275,11 +275,11 @@ class Trainer():
 		loss.backward()
 
 		if self.tr_step % self.args.steps_accum_gradients == 0:
-			self.gcn_opt.step()
-			self.classifier_opt.step()
-
 			self.gcn_opt.zero_grad()
 			self.classifier_opt.zero_grad()
+
+			self.gcn_opt.step()
+			self.classifier_opt.step()
 
 	def prepare_sample(self,sample):
 		sample = u.Namespace(sample)
