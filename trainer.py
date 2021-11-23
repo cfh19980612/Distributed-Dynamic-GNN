@@ -159,11 +159,12 @@ class Trainer():
 		torch.set_grad_enabled(grad)
 		Acc = []
 		frac = 0.1  # training set fraction
+		time_cost_forward = 0
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
 			i = 1
 			print(i)
 			i += 1
-			# time_start = time.time()
+			time_start = time.time()
 			if self.tasker.is_static:
 				s = self.prepare_static_sample(s)
 			else:
@@ -201,14 +202,16 @@ class Trainer():
 				# self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach(), adj = s.label_sp['idx'])
 				# precision, recall, f1 = self.compute_acc(predictions, s.label_sp['vals'])
 				precision, recall, f1, acc = self.compute_acc(predictions, s.label_sp['vals'])
-			# time_end = time.time()
+			time_end = time.time()
+			time_cost_forward += time_end - time_start
+
 			# print('processing one graph time: ',time_end - time_start)
 			# else:
 			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
 			if grad:
 				self.optim_step(loss)
 			Loss.append(loss)
-
+		print('forwarding graphs: ',time_cost_forward)
 		torch.set_grad_enabled(True)
 		# precision, recall, f1 = self.logger.log_epoch_done()
 		if set_name=='TEST':
