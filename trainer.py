@@ -164,12 +164,12 @@ class Trainer():
 		time_total_start = time.time()
 		total_loss = []
 		a = 0
-		print('current time 1: ', time.time())
+		# print('current time 1: ', time.time())
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
 			time_start = time.time()
 			if self.tasker.is_static:
 				s = self.prepare_static_sample(s)
-				print('current time 2: ', a, time.time())
+				# print('current time 2: ', a, time.time())
 			else:
 				s = self.prepare_sample(s)  #将稀疏矩阵转为稠密矩阵，用来计算
 
@@ -195,12 +195,12 @@ class Trainer():
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
 												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
-			print('current time 3: ', a, time.time())
+			# print('current time 3: ', a, time.time())
 			loss = self.comp_loss(predictions,s.label_sp['vals'])
-			print('current time 4: ', a, time.time())
+			# print('current time 4: ', a, time.time())
 
-			# time_end = time.time()
-			# time_cost_forward += time_end - time_start
+			time_end = time.time()
+			time_cost_forward += time_end - time_start
 
 			# release the GPU
 			for i, adj in enumerate(s.hist_adj_list):
@@ -208,11 +208,11 @@ class Trainer():
 				s.hist_adj_list[i].to('cpu')
 				s.hist_ndFeats_list[i].to('cpu')
 				s.node_mask_list[i].to('cpu')
-			print('current time 5: ', a, time.time())
+			# print('current time 5: ', a, time.time())
 			predictions.cpu()
 			s.label_sp['idx'].cpu()
 			s.label_sp['vals'].cpu()
-			print('current time 6: ', a, time.time())
+			# print('current time 6: ', a, time.time())
 			#acc = self.compute_acc(predictions, s.label_sp['vals'])
 			# print('Prediction:{}, Label:{}, acc:{}'.format(predictions.size(0),s.label_sp['vals'].size(0), acc))
 
@@ -226,30 +226,30 @@ class Trainer():
 			# else:
 			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
 			Loss.append(loss)
-			print('current time 7: ', a, time.time())
+			# print('current time 7: ', a, time.time())
 		loss = sum(Loss)/len(Loss)
 		# backward
-		# time_start_back = time.time()
-		print('current time 8: ', time.time())
+		time_start_back = time.time()
+		# print('current time 8: ', time.time())
 		if grad:
 			self.optim_step(loss)
-		print('current time 9: ', time.time())
-		# time_end_back = time.time()
+		# print('current time 9: ', time.time())
+		time_end_back = time.time()
 
-		# time_cost_back += time_end_back - time_start_back
+		time_cost_back += time_end_back - time_start_back
 
 
-		# time_total_end = time.time()
+		time_total_end = time.time()
 
-		# print('forwarding graphs: ',time_cost_forward)
-		# print('backwarding graphs: ',time_cost_back)
-		# print('processing graphs: ',time_total_end - time_total_start)
-		# time_other_start = time.time()
+		print('forwarding graphs: ',time_cost_forward)
+		print('backwarding graphs: ',time_cost_back)
+		print('processing graphs: ',time_total_end - time_total_start)
+		time_other_start = time.time()
 		torch.set_grad_enabled(True)
-		print('current time 10: ', time.time())
-		# time_other_end = time.time()
+		# print('current time 10: ', time.time())
+		time_other_end = time.time()
 
-		# print('other time: ', time_other_end - time_other_start)
+		print('other time: ', time_other_end - time_other_start)
 		# precision, recall, f1 = self.logger.log_epoch_done()
 
 		if set_name=='TEST':
