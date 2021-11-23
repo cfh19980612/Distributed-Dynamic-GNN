@@ -193,7 +193,17 @@ class Trainer():
 												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
 			loss = self.comp_loss(predictions,s.label_sp['vals'])
+			time_end = time.time()
+			time_cost_forward += time_end - time_start
 
+			# backward
+			time_start_back = time.time()
+			if grad:
+				self.optim_step(loss)
+			time_end_back = time.time()
+			time_cost_back += time_end_back - time_start_back
+
+			# release the GPU
 			for i, adj in enumerate(s.hist_adj_list):
 				s.hist_adj_list[i].to('cpu')
 				s.hist_ndFeats_list[i].to('cpu')
@@ -204,24 +214,18 @@ class Trainer():
 			#acc = self.compute_acc(predictions, s.label_sp['vals'])
 			# print('Prediction:{}, Label:{}, acc:{}'.format(predictions.size(0),s.label_sp['vals'].size(0), acc))
 
-			# 计算recall和f1
+			# 测试集上计算precision，recall和f1
 			if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred' and self.rank == 0:
 				# self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach(), adj = s.label_sp['idx'])
 				# precision, recall, f1 = self.compute_acc(predictions, s.label_sp['vals'])
 				precision, recall, f1, acc = self.compute_acc(predictions, s.label_sp['vals'])
-			time_end = time.time()
-			time_cost_forward += time_end - time_start
+
 
 			# print('processing one graph time: ',time_end - time_start)
 			# else:
 			# 	self.logger.log_minibatch(predictions, s.label_sp['vals'], loss.detach())
 			Loss.append(loss)
 		loss = sum(Loss)/len(Loss)
-		time_start_back = time.time()
-		if grad:
-			self.optim_step(loss)
-		time_end_back = time.time()
-		time_cost_back += time_end_back - time_start_back
 
 		time_total_end = time.time()
 		print('forwarding graphs: ',time_cost_forward)
