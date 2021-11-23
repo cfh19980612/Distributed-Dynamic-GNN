@@ -194,6 +194,11 @@ class Trainer():
 												   s.node_mask_list)
 			loss = self.comp_loss(predictions,s.label_sp['vals'])
 
+			s.hist_adj_list.cpu()
+			s.hist_ndFeats_list.cpu()
+			s.node_mask_list.cpu()
+			predictions.cpu()
+			s.label_sp.cpu()
 			#acc = self.compute_acc(predictions, s.label_sp['vals'])
 			# print('Prediction:{}, Label:{}, acc:{}'.format(predictions.size(0),s.label_sp['vals'].size(0), acc))
 
