@@ -231,6 +231,7 @@ class Trainer():
 			time_cost_forward += time_end - time_start
 			print('rank:{}, subgraph:{}, time cost:{}'.format(self.rank, a, time_end - time_start))
 			a += 1
+		time_total_end = time.time()
 		prediction = torch.cat(Prediction, dim=0)
 		label = torch.cat(Label, dim=0)
 		# loss = sum(Loss)/len(Loss)
@@ -245,9 +246,6 @@ class Trainer():
 		time_end_back = time.time()
 
 		time_cost_back += time_end_back - time_start_back
-
-
-		time_total_end = time.time()
 
 		print('forwarding graphs: ',time_cost_forward)
 		print('backwarding graphs: ',time_cost_back)
