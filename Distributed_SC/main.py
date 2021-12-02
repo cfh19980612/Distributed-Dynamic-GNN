@@ -226,13 +226,6 @@ def worker(rank, args, dataset, tasker):
 				world_size=DIST_DEFAULT_WORLD_SIZE,
 				rpc_backend_options=rpc_backend_options,
 			)
-			if DIST_DEFAULT_WORLD_SIZE > 1:
-				# build remote module output
-				Remote_Module[rank] = RemoteModule(
-								trainer_name,
-								module_cls = RNN_Send_Module,
-								args=(GCN[rank].cpu()),
-								)
 			print('rank',Remote_Module)
 
 		elif DIST_DEFAULT_WORLD_SIZE > 1 and rank == DIST_DEFAULT_WORLD_SIZE -1:  # the final trainer has no remote module output
@@ -241,6 +234,13 @@ def worker(rank, args, dataset, tasker):
 			# initialize the rpc group
 			# rpc_backend_options.set_device_map('trainer0',{rank: rank - 1})
 			# rpc_backend_options.set_devices(["cuda:1"])
+			if DIST_DEFAULT_WORLD_SIZE > 1:
+				# build remote module output
+				Remote_Module[rank-1] = RemoteModule(
+								trainer_name,
+								module_cls = RNN_Send_Module,
+								args=(GCN[rank-1]),
+								)
 			rpc.init_rpc(
 				trainer_name,
 				rank = rank,
