@@ -31,14 +31,13 @@ class Link_Pred_Tasker():
 	There's a test difference in the behavior, on test (or development), the number of sampled non existing 
 	edges should be higher.
 	'''
-	def __init__(self,args,dataset,world_size,rank):
+	def __init__(self,args,dataset,world_size):
 		self.data = dataset
 		#max_time for link pred should be one before
 		self.max_time = dataset.max_time - 1
 		self.args = args
 		self.num_classes = 2
 		self.world_size = world_size
-		self.rankID = rank
 
 		if args.use_2_hot_node_feats:
 			max_deg_out, max_deg_in = tu.get_max_degs(self.args, self.data)  # 统计所有时刻最大的入度和出度
@@ -47,12 +46,12 @@ class Link_Pred_Tasker():
 			max_deg,_ = tu.get_max_degs(self.args, self.data)
 			self.feats_per_node = max_deg
 
-		# if feature partition
-		if self.args.partition == 'feature':
-			if self.rankID != self.world_size - 1:
-				self.feats_per_node = self.feats_per_node // self.world_size
-			else:
-				self.feats_per_node = self.feats_per_node // self.world_size + self.feats_per_node%self.world_size
+		# # if feature partition
+		# if self.args.partition == 'feature':
+		# 	if self.rankID != self.world_size - 1:
+		# 		self.feats_per_node = self.feats_per_node // self.world_size
+		# 	else:
+		# 		self.feats_per_node = self.feats_per_node // self.world_size + self.feats_per_node%self.world_size
 
 		# self.get_node_feats = self.build_get_node_feats(args,dataset)
 		# self.prepare_node_feats = self.build_prepare_node_feats(args,dataset)
@@ -142,14 +141,14 @@ class Link_Pred_Tasker():
 			node_mask = tu.get_node_mask(cur_adj, self.data.num_nodes)  # 生成点掩码，边中出现过的点为0，其余为-inf
 			node_feats = self.get_node_feats(cur_adj)
 			# print(node_feats)
-			# if feature partition
-			if self.args.partition == 'feature':
-				scale = self.feats_per_node // self.world_size
-				if self.rankID != self.world_size -1:
-					node_feats = node_feats[:,self.rankID*scale:(self.rankID+1)*scale]
-				else:
-					node_feats = node_feats[:,self.rankID*scale:]
-				# self.feats_per_node = len(node_feats)
+			# # if feature partition
+			# if self.args.partition == 'feature':
+			# 	scale = self.feats_per_node // self.world_size
+			# 	if self.rankID != self.world_size -1:
+			# 		node_feats = node_feats[:,self.rankID*scale:(self.rankID+1)*scale]
+			# 	else:
+			# 		node_feats = node_feats[:,self.rankID*scale:]
+			# 	# self.feats_per_node = len(node_feats)
 
 			cur_adj = tu.normalize_adj(adj = cur_adj, num_nodes = self.data.num_nodes)
 

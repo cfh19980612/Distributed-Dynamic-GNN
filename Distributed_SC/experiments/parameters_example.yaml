@@ -1,7 +1,7 @@
 data: sbm50
 
 sbm50_args:
-  folder: ./data/
+  folder: ../data/
   edges_file: sbm_50t_1000n_adj.csv
   aggr_time: 1 #
   feats_per_node: 3

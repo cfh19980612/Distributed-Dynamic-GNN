@@ -101,9 +101,9 @@ def build_dataset(args, rankID):
 	else:
 		raise NotImplementedError('only arxiv has been implemented')
 
-def build_tasker(args,dataset,rank):
+def build_tasker(args,dataset):
 	if args.task == 'link_pred':
-		return lpt.Link_Pred_Tasker(args,dataset,DIST_DEFAULT_WORLD_SIZE,rank)
+		return lpt.Link_Pred_Tasker(args,dataset,DIST_DEFAULT_WORLD_SIZE)
 	elif args.task == 'edge_cls':
 		return ect.Edge_Cls_Tasker(args,dataset)
 	elif args.task == 'node_cls':
@@ -178,7 +178,7 @@ def worker(rank, args):
 	# print(dataset.edges['idx'].size(0)/50)
 	dataset.max_time = dataset.max_time -25
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
-	tasker = build_tasker(args, dataset, rank)
+	tasker = build_tasker(args, dataset)
 	print('tasker complete!', tasker.feats_per_node)
 	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)  #build the splitter
 	print('splitter complete!')
