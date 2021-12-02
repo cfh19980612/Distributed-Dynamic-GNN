@@ -213,7 +213,7 @@ def worker(rank, args, dataset, tasker):
 			# build gcn
 			GCN[rank] = build_gcn(args, tasker, rank)
 			# initialize the rpc group
-			rpc_backend_options.set_devices('cuda:0')
+			rpc_backend_options.set_devices("cuda:0")
 			rpc_backend_options.set_device_map('trainer1',{rank: rank + 1})
 			# options = TensorPipeRpcBackendOptions(
 			# 			init_method= "tcp://localhost:12349",
