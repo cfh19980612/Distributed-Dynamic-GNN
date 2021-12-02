@@ -53,6 +53,7 @@ DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
 DIST_DEFAULT_WORLD_SIZE = 2
 rpc_backend_options = TensorPipeRpcBackendOptions()
 rpc_backend_options.init_method = "tcp://localhost:12348"
+rpc_backend_options.set_device_map
 
 GCN = [None for i in range (DIST_DEFAULT_WORLD_SIZE)]
 Remote_Module = [None for i in range (DIST_DEFAULT_WORLD_SIZE - 1)]
@@ -219,7 +220,7 @@ def worker(rank, args, dataset, tasker):
 		if rank == 0: # the first trainer
 			# build gcn
 			GCN[rank] = build_gcn(args, tasker, rank)
-
+			rpc_backend_options.set_device_map(trainer_name,{rank, rank + 1})
 			if DIST_DEFAULT_WORLD_SIZE > 1:
 				# build remote module output
 				Remote_Module[rank] = RemoteModule(
