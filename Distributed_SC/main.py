@@ -247,7 +247,7 @@ def worker(rank, args, dataset, tasker):
 								module_cls = RNN_Send_Module,
 								args=(GCN[rank-1]),
 								)
-			print('rank',Remote_Module)
+			# print('rank',Remote_Module)
 			GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
 
 		else:
