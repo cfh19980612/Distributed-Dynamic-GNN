@@ -234,6 +234,12 @@ def worker(rank, args, dataset, tasker):
 			# initialize the rpc group
 			# rpc_backend_options.set_device_map('trainer0',{rank: rank - 1})
 			# rpc_backend_options.set_devices(["cuda:1"])
+			rpc.init_rpc(
+				trainer_name,
+				rank = rank,
+				world_size=DIST_DEFAULT_WORLD_SIZE,
+				rpc_backend_options=rpc_backend_options,
+			)
 			if DIST_DEFAULT_WORLD_SIZE > 1:
 				# build remote module output
 				Remote_Module[rank-1] = RemoteModule(
@@ -241,12 +247,6 @@ def worker(rank, args, dataset, tasker):
 								module_cls = RNN_Send_Module,
 								args=(GCN[rank-1]),
 								)
-			rpc.init_rpc(
-				trainer_name,
-				rank = rank,
-				world_size=DIST_DEFAULT_WORLD_SIZE,
-				rpc_backend_options=rpc_backend_options,
-			)
 			print('rank',Remote_Module)
 			GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
 
