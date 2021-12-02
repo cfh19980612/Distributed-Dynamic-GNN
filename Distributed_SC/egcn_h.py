@@ -6,6 +6,7 @@ import torch.nn as nn
 import math
 from collections import OrderedDict
 from torch.nn import init
+
 '''
 注： EGCN用来预测时序输出，即输入一个时序图，预测最后一时刻的图上的节点embedding
 ->  在构造训练，验证和测试集时，数据集中每一个数据都是某一时刻的图，在传入EGCN之前
@@ -18,7 +19,7 @@ from torch.nn import init
 PARAMETER_DICT = {}
 
 class EGCN(torch.nn.Module):
-    def __init__(self, args, tasker, activation, device='cpu', skipfeats=False):
+    def __init__(self, args, tasker, rank, remote_module, activation, device='cpu', skipfeats=False):
         super(EGCN,self).__init__()
         GRCU_args = u.Namespace({})  #将字典的索引改为 dict['key'] -> dict.key
         # print('feat_per_node,',tasker.feats_per_node)
@@ -26,39 +27,55 @@ class EGCN(torch.nn.Module):
                  args.layer_1_feats,
                  args.layer_2_feats]
         self.tasker = tasker
-        self.device = device
+        self.rank = rank
         self.skipfeats = skipfeats
         self.GRCU_layers = nn.ModuleList()
-        # self._parameters = nn.ParameterList()
+        self.GCN_init_weights = []
+        self.remote_module = remote_module
+        self.device = device
 
+        if self.remote_module is not None:
+            self.remote_module.cuda(rank)
+
+        self.GCN_list = []
         # 定义EGCN，包含两层，每层的输入特征维度以及输出特征维度，激活函数
         for i in range(1,len(feats)):
             GRCU_args = u.Namespace({'in_feats' : feats[i-1],  # 输入节点特征维度 node_embedding
                                      'out_feats': feats[i],  # 输出节点特征维度
                                      'activation': activation})
 
-            #grcu_i = GRCU(GRCU_args, i)  # 创建GRCU层，每一个GRCU包含了GCN和GRU，输出为节点embedding
             self.GRCU_layers.append(GRCU(GRCU_args, i))
+            if rank == 0:
+                self.GCN_init_weights.append(Parameter(torch.Tensor(feats[i-1],feats[i])).cuda(rank))
+                self.reset_param(self.GCN_init_weights[i-1])
 
-            # self.GRCU_layers.append(grcu_i)  # 加入到EGCN模型中
-
-            # self._parameters.extend(self.GRCU_layers[-1].parameters())  # 将每层的参数加入parameter列表中
-
-    # def parameters(self):
-    #     return self._parameters
-
-    # A_list: 所有时刻（训练样本所在时刻以及前num_hist_step时刻）的图拉普拉斯矩阵； Node_list:上一层所有时刻节点的特征； node_mask_list: 
-    def forward(self,A_list, Nodes_list,nodes_mask_list):
+    # A_list: 所有时刻（训练样本所在时刻以及前num_hist_step时刻）的图拉普拉斯矩阵； Node_list:上一层所有时刻节点的特征； node_mask_list:
+    def forward(self,A_list, Nodes_list, nodes_mask_list):
 
         node_feats= Nodes_list[-1] # Node_list（hist_ndFeat_list）存储每一时刻节点的输出embedding，-1表示最新（上一）时刻的节点输出embedding
 
-        for unit in self.GRCU_layers:
-            Nodes_list = unit(A_list,Nodes_list,nodes_mask_list)  # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
+        for (layer, unit) in enumerate(self.GRCU_layers):
+            # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
+            if self.rank == 0:
+                gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = self.GCN_init_weights[layer],)
+            else:
+                gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,remote_module = self.remote_module)
+            self.GCN_list.append(gcn_weights[-1])
+
             # 在用snapshot partition时，需要将每一层的输出结果都保存，不能覆盖，因为每一层RNN都要通讯
         out = Nodes_list[-1]  # 返回最后一时刻的图节点的最后一层embedding输出
         if self.skipfeats:  # ？？？？
             out = torch.cat((out,node_feats), dim=1)   # use node_feats.to_dense() if 2hot encoded input
         return out
+
+    def GCN_propogation(self):
+        return self.GCN_list[-1]
+
+    def reset_param(self,t):
+        #Initialize based on the number of columns
+        stdv = 1. / math.sqrt(t.size(1))
+        # t.data.uniform_(-stdv,stdv)
+        init.xavier_uniform_(t)
 
 ###  GRCU为EGCN的一层，GRCU输出该层所有时刻的图节点embedding， 在EGCN forward函数中， Nodes_list会由最后一层的GRCU输出覆盖，即最后一层所有时刻图节点的embedding
 ###  Nodes_list[-1]则为最后一层中，最后一时刻的图节点embedding
@@ -66,15 +83,16 @@ class GRCU(torch.nn.Module):
     def __init__(self,args, layer):
         super(GRCU,self).__init__()
         self.args = args
+        self.layer = layer
         cell_args = u.Namespace({})       #-------------------------------------------------------------------------------
         cell_args.rows = args.in_feats    #| 对应GCN权重矩阵行和列，行为该层输入节点的embedding维度，列为该层输出节点的embedding维度|
         cell_args.cols = args.out_feats   #-------------------------------------------------------------------------------
         self.evolve_weights = mat_GRU_cell(cell_args,layer)  # 实例化，每个GRU的计算为mat_GRU_cell实例: 利用上一时刻的GCN权重计算该时刻的GCN权重矩阵
-
+        # self.remote_module = remote_module  # 远端模块
         self.activation = self.args.activation  # 激活函数
-        self.GCN_init_weights = Parameter(torch.Tensor(self.args.in_feats,self.args.out_feats))  # 创建GCN的权重参数,时刻0的参数，后续时刻的GCN参数都是算出来的
+        # self.GCN_init_weights = Parameter(torch.Tensor(self.args.in_feats,self.args.out_feats))  # 创建GCN的权重参数,时刻0的参数，后续时刻的GCN参数都是算出来的
         # self.GCN_init_weights = gcn(self.args)
-        self.reset_param(self.GCN_init_weights)  # 初始化GCN权重参数
+        # self.reset_param(self.GCN_init_weights)  # 初始化GCN权重参数
         # PARAMETER_DICT['Layer-{} GCN'.format(layer)] = self.GCN_init_weights
 
     def reset_param(self,t):
@@ -86,16 +104,16 @@ class GRCU(torch.nn.Module):
     # def parameters(self):
     #     return self.GCN_init_weights
     # l+1层前向
-    def forward(self,A_list,node_embs_list,mask_list):
-        # Namelist = []
-        # for name in self.GCN_init_weights.state_dict():
-        #     Namelist.append(name)
-        # print(Namelist)
-        # GCN_weights = self.GCN_init_weights.state_dict()['w']
-        GCN_weights = self.GCN_init_weights
+    def forward(self,A_list,node_embs_list,mask_list,rank,GCN_init_weights = None, remote_module = None):
+
+        if remote_module is not None:
+            GCN_weights = remote_module.forward(self.layer).cuda(rank)
+        else:
+            GCN_weights = GCN_init_weights
+
         # print(GCN_weights)
         out_seq = []  #该层的输出embedding列表
-        weight_seq = []
+        weight_seq = []  # 该层每一时刻的GCN参数
         for t,Ahat in enumerate(A_list): # 计算t时刻的隐藏状态（该时刻GCN的参数）以及节点embedding
             node_embs = node_embs_list[t] # 读取t时刻的上一层节点特征H_t^l
             #first evolve the weights from the initial and use the new weights with the node_embs
@@ -105,8 +123,9 @@ class GRCU(torch.nn.Module):
             node_embs = self.activation(Ahat.matmul(node_embs.matmul(GCN_weights)))  # GCN计算：A^XW
             # node_embs = self.activation(self.GCN_init_weights(node_embs, Ahat))
             out_seq.append(node_embs)  # 输出该层该时刻的节点输出，加入到该层的输出embedding列表中
+            weight_seq.append(GCN_weights)
 
-        return out_seq  # 返回该层【0~t+1】时刻的图节点embedding
+        return weight_seq, out_seq  # 返回该层【0~t+1】时刻的图节点embedding以及GCN参数
 
 class mat_GRU_cell(torch.nn.Module):
     def __init__(self,args,layer):  # 传入的参数为GCN权重参数的行和列，用来定义GRU的权重参数维度，因为GRU的输入为GCN的权重参数

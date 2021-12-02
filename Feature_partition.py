@@ -28,9 +28,9 @@ import yt_dl as yt
 
 #models
 import models as mls
+import egcn_h_fp
 import egcn_h
 import egcn_o
-import egcn_h_fp
 import Cross_Entropy as ce
 import trainer as tr
 
@@ -98,9 +98,9 @@ def build_dataset(args, rankID):
 	else:
 		raise NotImplementedError('only arxiv has been implemented')
 
-def build_tasker(args,dataset,rank):
+def build_tasker(args,dataset):
 	if args.task == 'link_pred':
-		return lpt.Link_Pred_Tasker(args,dataset,DIST_DEFAULT_WORLD_SIZE,rank)
+		return lpt.Link_Pred_Tasker(args,dataset)
 	elif args.task == 'edge_cls':
 		return ect.Edge_Cls_Tasker(args,dataset)
 	elif args.task == 'node_cls':
@@ -133,10 +133,7 @@ def build_gcn(args,tasker):
 		elif args.model == 'egcn':
 			return egcn.EGCN(gcn_args, activation = torch.nn.RReLU()).to(args.device)
 		elif args.model == 'egcn_h':
-			if args.partition == 'feature':
-				return egcn_h_fp.EGCN(gcn_args, tasker, activation = torch.nn.RReLU(), device = args.device)
-			else:
-				return egcn_h.EGCN(gcn_args, tasker, activation = torch.nn.RReLU(), device = args.device)
+			return egcn_h.EGCN(gcn_args, tasker, activation = torch.nn.RReLU(), device = args.device)
 		elif args.model == 'skipfeatsegcn_h':
 			return egcn_h.EGCN(gcn_args, activation = torch.nn.RReLU(), device = args.device, skipfeats=True)
 		elif args.model == 'egcn_o':
@@ -158,9 +155,6 @@ def build_classifier(args,tasker):
 
 	return mls.Classifier(args,in_features = in_feats, out_features = tasker.num_classes).to(args.device)
 
-def build_gcn_fp(args,tasker):
-	return mls.gcn(tasker.feats_per_node, args.gcn_parameters['layer_1_feats'])
-
 def worker(rank, args):
 	# CPU or GPU?
 	args.device='cpu'
@@ -173,9 +167,9 @@ def worker(rank, args):
 	dataset = build_dataset(args, rank)
 	# print('V:',dataset.num_nodes)
 	# print(dataset.edges['idx'].size(0)/50)
-	dataset.max_time = dataset.max_time -25
+	dataset.max_time = dataset.max_time
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
-	tasker = build_tasker(args, dataset, rank)
+	tasker = build_tasker(args, dataset)
 	print('tasker complete!', tasker.feats_per_node)
 	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)  #build the splitter
 	print('splitter complete!')
@@ -223,8 +217,6 @@ def worker(rank, args):
 	# 非分布式，直接加载模型进GPU
 	else: gcn = nn.DataParallel(gcn).cuda()
 
-	gcn_fp = build_gcn_fp(args,tasker)
-
 	classifier = build_classifier(args,tasker)
 	#build a loss
 	cross_entropy = ce.Cross_Entropy(args,dataset).to(gcn.device)
@@ -233,7 +225,6 @@ def worker(rank, args):
 	trainer = tr.Trainer(args,
 						 splitter = splitter,
 						 gcn = gcn,
-						 gcn_fp = gcn_fp,
 						 classifier = classifier,
 						 comp_loss = cross_entropy,
 						 dataset = dataset,
@@ -263,104 +254,3 @@ if __name__ == '__main__':
 	args = u.parse_args(parser)
 
 	launch(args)
-
-
-
-
-
-
-
-# # 读数据进程执行的代码
-# def _write(q,Input):
-#     print('Process(%s) completes training...' % os.getpid())
-#     for x in Input:
-#         q.put(x)
-#         print('Put %s to queue...' % x)
-#         time.sleep(random.random())
-# # 读数据进程执行的代码:
-# def _read(q):
-#     print('Process(%s) is reading...' % os.getpid())
-#     while True:
-#         x = q.get(True)
-#         print('Get %s from queue.' % x)
-
-# # 本地训练
-# def Local_training(args, q, model, dataset, tasker, splitter):
-#     print('Process {} gets graphs with {} timesteps'.format(os.getpid(), dataset.max_time.item()+1))
-#     classifier = build_classifier(args,tasker)
-# 	#build a loss
-#     cross_entropy = ce.Cross_Entropy(args,dataset).to(args.device)
-
-# 	#trainer
-#     trainer = tr.Trainer(args,
-# 						 splitter = splitter,
-# 						 gcn = model,
-# 						 classifier = classifier,
-# 						 comp_loss = cross_entropy,
-# 						 dataset = dataset,
-# 						 num_classes = tasker.num_classes)
-#     trainer.train()
-#     _write(q, "Hello")
-# if __name__ == '__main__':
-#     q = Queue()
-
-#     # 1) 初始化
-#     # torch.distributed.init_process_group(backend="nccl")
-#     # parser = argparse.ArgumentParser()
-#     # parser.add_argument('--local_rank', default=-1, type=int,
-#     #                     help='node rank for distributed training')
-#     # args = parser.parse_args()
-
-#     # dist.init_process_group(backend='nccl')
-#     # torch.cuda.set_device(args.local_rank)
-
-#     # 2） 配置每个进程的gpu
-#     # local_rank = torch.distributed.get_rank()
-#     # torch.cuda.set_device(local_rank)
-#     # device = torch.device("cuda", local_rank)
-
-#     # dataset = RandomDataset(input_size, data_size) # 修改
-
-#     # 3）使用DistributedSampler
-#     # rand_loader = DataLoader(dataset=dataset,
-#     #                         batch_size=batch_size,
-#     #                         sampler=DistributedSampler(dataset))
-
-#     # 4) 参数设定
-#     parser = u.create_parser() #定义超参数
-#     args = u.parse_args(parser)
-#     args.use_cuda = (torch.cuda.is_available() and args.use_cuda)
-#     args.device='cpu'
-#     if args.use_cuda:
-#         args.device='cuda'
-#     print ("use CUDA:", args.use_cuda, "- device:", args.device)
-
-#     # 创建数据集
-#     dataset1 = build_dataset(args, 0)
-#     dataset2 = build_dataset(args, 1)
-#     # print(dataset.max_time)
-
-#     # 4) 定义模型和超参数
-#     # args = build_random_hyper_params(args)
-#     tasker1 = build_tasker(args,dataset1)
-#     tasker2 = build_tasker(args,dataset2)
-#     splitter1 = sp.splitter(args,tasker1)  #build the splitter
-#     splitter2 = sp.splitter(args,tasker2)  #build the splitter
-#     gcn1 = build_gcn(args, tasker1)  #build the models
-#     gcn2 = build_gcn(args, tasker2)  #build the models
-#     # 5) 封装之前要把模型移到对应的gpu
-#     # gcn.to(device)
-
-#     # 6） 启动进程开始训练
-#     Client_1 = Process(target=Local_training, args=(args, q, gcn1, dataset1, tasker1, splitter1))
-#     Client_2 = Process(target=Local_training, args=(args, q, gcn2, dataset2, tasker2, splitter1))
-#     # _reader = Process(target=_read, args=(q,))
-#     # 启动子进程_writer，写入:
-#     Client_1.start()
-#     Client_2.start()
-
-#     # 等待_writer结束:
-#     Client_1.join()
-#     Client_2.join()
-#     # _reader进程里是死循环，无法等待其结束，只能强行终止:
-#     Client_2.terminate()

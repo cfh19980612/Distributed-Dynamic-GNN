@@ -16,13 +16,13 @@ from sklearn.metrics import f1_score
 import torch.nn.functional as F
 
 class Trainer():
-	def __init__(self,args, splitter, gcn, gcn_fp, classifier, comp_loss, dataset, num_classes, device, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD, rank):
+	def __init__(self,args, splitter, gcn, classifier, comp_loss, dataset, num_classes, device, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD, rank):
 		self.args = args
 		self.splitter = splitter  # 数据集类，包含训练集，验证集和测试集
 		self.tasker = splitter.tasker  # 为训练集中的样本生成动态图属性列表，包含时序邻接矩阵列表，时序点特征列表等，生成的矩阵都为稀疏矩阵（字典），作为输入之前需要转为稠密矩阵
 		self.gcn = gcn  # 模型
 		self.classifier = classifier  # 分类器
-		self.gcn_fp = gcn_fp  # 拆分的GCN
+		# self.gcn_fp = gcn_fp  # 拆分的GCN
 		self.comp_loss = comp_loss  # loss函数
 
 		self.num_nodes = dataset.num_nodes  # 总点数（不随时刻变化）
@@ -56,10 +56,10 @@ class Trainer():
 		self.classifier_opt = torch.optim.Adam(params, lr = args.learning_rate)
 		self.classifier_opt.zero_grad()
 
-		if self.args.partition == 'feature':  # feature partition
-			params = self.gcn_fp.parameters()
-			self.gcn_fp_opt = torch.optim.Adam(params, lr = args.learning_rate)
-			self.gcn_fp_opt.zero_grad()
+		# if self.args.partition == 'feature':  # feature partition
+		# 	params = self.gcn_fp.parameters()
+		# 	self.gcn_fp_opt = torch.optim.Adam(params, lr = args.learning_rate)
+		# 	self.gcn_fp_opt.zero_grad()
 
 	def save_checkpoint(self, state, filename='checkpoint.pth.tar'):
 		torch.save(state, filename)
@@ -161,7 +161,7 @@ class Trainer():
 		dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
 		dataframe = pd.concat([dataframe, pd.DataFrame(Recall,columns=['P'])],axis=1)
 		dataframe = pd.concat([dataframe, pd.DataFrame(F1,columns=['Q'])],axis=1)
-		dataframe.to_csv(f"./result/{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
+		dataframe.to_csv(f"../result/SC_{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
 
 	def run_epoch(self, split, epoch, set_name, grad):
 		Loss = []
@@ -233,12 +233,12 @@ class Trainer():
 							  hist_ndFeats_list,
 							  mask_list)
 		
-		# feature partition: 每个client用一部分特征训练
-		if self.args.partition == 'feature':
-			nodes_embs = gcn(self.gcn_fp,
-				              hist_adj_list,
-							  hist_ndFeats_list,
-							  mask_list)
+		# # feature partition: 每个client用一部分特征训练
+		# if self.args.partition == 'feature':
+		# 	nodes_embs = gcn(self.gcn_fp,
+		# 		              hist_adj_list,
+		# 					  hist_ndFeats_list,
+		# 					  mask_list)
 
 		predict_batch_size = 128
 		gather_predictions=[]
@@ -265,13 +265,13 @@ class Trainer():
 		if self.tr_step % self.args.steps_accum_gradients == 0:
 			self.gcn_opt.zero_grad()
 			self.classifier_opt.zero_grad()
-			if self.args.partition == 'feature':
-				self.gcn_fp_opt.zero_grad()
+			# if self.args.partition == 'feature':
+			# 	self.gcn_fp_opt.zero_grad()
 			loss.backward()
 			self.gcn_opt.step()
 			self.classifier_opt.step()
-			if self.args.partition == 'feature':
-				self.gcn_fp_opt.step()
+			# if self.args.partition == 'feature':
+			# 	self.gcn_fp_opt.step()
 
 
 	def prepare_sample(self,sample):

@@ -72,9 +72,9 @@ class GRCU(torch.nn.Module):
         self.evolve_weights = mat_GRU_cell(cell_args,layer)  # 实例化，每个GRU的计算为mat_GRU_cell实例: 利用上一时刻的GCN权重计算该时刻的GCN权重矩阵
 
         self.activation = self.args.activation  # 激活函数
-        self.GCN_init_weights = Parameter(torch.Tensor(self.args.in_feats,self.args.out_feats))  # 创建GCN的权重参数,时刻0的参数，后续时刻的GCN参数都是算出来的
+        # self.GCN_init_weights = Parameter(torch.Tensor(self.args.in_feats,self.args.out_feats))  # 创建GCN的权重参数,时刻0的参数，后续时刻的GCN参数都是算出来的
         # self.GCN_init_weights = gcn(self.args)
-        self.reset_param(self.GCN_init_weights)  # 初始化GCN权重参数
+        # self.reset_param(self.GCN_init_weights)  # 初始化GCN权重参数
         # PARAMETER_DICT['Layer-{} GCN'.format(layer)] = self.GCN_init_weights
 
     def reset_param(self,t):
@@ -86,13 +86,14 @@ class GRCU(torch.nn.Module):
     # def parameters(self):
     #     return self.GCN_init_weights
     # l+1层前向
-    def forward(self,A_list,node_embs_list,mask_list):
+    def forward(self,gcn,A_list,node_embs_list,mask_list):
         # Namelist = []
         # for name in self.GCN_init_weights.state_dict():
         #     Namelist.append(name)
         # print(Namelist)
-        # GCN_weights = self.GCN_init_weights.state_dict()['w']
-        GCN_weights = self.GCN_init_weights
+        # deepcopy?
+        GCN_weights = gcn.state_dict()['w']
+        # GCN_weights = self.GCN_init_weights
         # print(GCN_weights)
         out_seq = []  #该层的输出embedding列表
         weight_seq = []

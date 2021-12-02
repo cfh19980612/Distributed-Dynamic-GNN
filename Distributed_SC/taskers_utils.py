@@ -43,7 +43,7 @@ def get_1_hot_deg_feats(adj,max_deg,num_nodes):
 
     # print ('XXX degs_out',degs_out['idx'].size(),degs_out['vals'].size())
     degs_out = u.make_sparse_tensor(degs_out,'long',[num_nodes,max_deg])
-    print(degs_out)
+    # print(degs_out)
     hot_1 = {'idx': degs_out._indices().t(),
              'vals': degs_out._values()}
     return hot_1
