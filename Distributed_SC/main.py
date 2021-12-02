@@ -214,16 +214,16 @@ def worker(rank, args, dataset, tasker):
 			GCN[rank] = build_gcn(args, tasker, rank)
 			# initialize the rpc group
 			# rpc_backend_options.set_device_map('trainer1':{rank: rank + 1})
-			options = TensorPipeRpcBackendOptions(
-						init_method= "tcp://localhost:12349",
-						device_maps={"trainer1": {0: 1}}
-						# maps worker0's cuda:0 to worker1's cuda:1
-					)
+			# options = TensorPipeRpcBackendOptions(
+			# 			init_method= "tcp://localhost:12349",
+			# 			device_maps={"trainer1": {0: 1}}
+			# 			# maps worker0's cuda:0 to worker1's cuda:1
+			# 		)
 			rpc.init_rpc(
 				trainer_name,
 				rank = rank,
 				world_size=DIST_DEFAULT_WORLD_SIZE,
-				rpc_backend_options=options,
+				rpc_backend_options=rpc_backend_options,
 			)
 			if DIST_DEFAULT_WORLD_SIZE > 1:
 				# build remote module output
@@ -238,7 +238,7 @@ def worker(rank, args, dataset, tasker):
 			print(trainer_name)
 			# build gcn
 			# initialize the rpc group
-			# rpc_backend_options.set_device_map('trainer0',{rank: rank - 1})
+			rpc_backend_options.set_device_map('trainer0',{rank: rank - 1})
 			rpc.init_rpc(
 				trainer_name,
 				rank = rank,
