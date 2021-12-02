@@ -247,7 +247,7 @@ def worker(rank, args, dataset, tasker):
 		if args.device == 'cuda':
 			torch.cuda.set_device(rank)
 			GCN[rank].cuda()
-		GCN[rank] = DDP(GCN[rank].cuda(rank), device_ids=[rank])
+		# GCN[rank] = DDP(GCN[rank].cuda(rank), device_ids=[rank])
 
 		# build the classifier
 		classifier = build_classifier(args,tasker)
