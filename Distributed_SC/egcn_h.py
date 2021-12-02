@@ -61,7 +61,7 @@ class EGCN(torch.nn.Module):
             else:
                 gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,remote_module = self.remote_module)
             self.GCN_list.append(gcn_weights[-1])
-            print('Trainer{} layer{}, Node_embedding{}'.format(self.rank,layer,Nodes_list[-1]))
+            print('Trainer{} layer{}, GCN{}'.format(self.rank,layer,gcn_weights))
             # 在用snapshot partition时，需要将每一层的输出结果都保存，不能覆盖，因为每一层RNN都要通讯
         out = Nodes_list[-1]  # 返回最后一时刻的图节点的最后一层embedding输出
         if self.skipfeats:  # ？？？？
