@@ -35,11 +35,11 @@ from tasker import link_pred_tasker as lpt
 # import node_cls_tasker as nct
 
 #models
-from model import models as mls
-from model import egcn_h
+import models as mls
+import egcn_h
 from model import egcn_o
 from model import egcn_h_fp
-from model import Cross_Entropy as ce
+import Cross_Entropy as ce
 
 import trainer as tr
 
@@ -50,7 +50,7 @@ DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
 DIST_DEFAULT_PORT = '12344'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
-DIST_DEFAULT_WORLD_SIZE = 1
+DIST_DEFAULT_WORLD_SIZE = 2
 rpc_backend_options = TensorPipeRpcBackendOptions()
 rpc_backend_options.init_method = "tcp://localhost:12348"
 
