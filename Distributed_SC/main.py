@@ -230,7 +230,7 @@ def worker(rank, args, dataset, tasker):
 				Remote_Module[rank] = RemoteModule(
 								trainer_name,
 								module_cls = RNN_Send_Module,
-								args=(GCN[rank]),
+								args=(GCN[rank].cpu()),
 								)
 			print('rank',Remote_Module)
 
