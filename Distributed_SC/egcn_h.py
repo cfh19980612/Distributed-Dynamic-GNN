@@ -107,8 +107,10 @@ class GRCU(torch.nn.Module):
     def forward(self,A_list,node_embs_list,mask_list,rank,GCN_init_weights = None, remote_module = None):
 
         if remote_module is not None:
+            print('remote module')
             GCN_weights = remote_module.forward(self.layer).cuda(rank)
         else:
+            print('local GCN')
             GCN_weights = GCN_init_weights
         print('Trainer{} layer{}, GCN{}'.format(rank,self.layer,GCN_weights))
         # print(GCN_weights)
