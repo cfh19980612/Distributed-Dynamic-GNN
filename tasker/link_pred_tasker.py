@@ -1,5 +1,7 @@
 import torch
-import taskers_utils as tu
+from tasker import taskers_utils as tu
+import sys
+sys.path.append('../')
 import utils as u
 
 import functools
