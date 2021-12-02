@@ -53,7 +53,6 @@ DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
 DIST_DEFAULT_WORLD_SIZE = 2
 rpc_backend_options = TensorPipeRpcBackendOptions()
 rpc_backend_options.init_method = "tcp://localhost:12348"
-rpc_backend_options.set_device_map
 
 GCN = [None for i in range (DIST_DEFAULT_WORLD_SIZE)]
 Remote_Module = [None for i in range (DIST_DEFAULT_WORLD_SIZE - 1)]
@@ -201,14 +200,6 @@ def worker(rank, args, dataset, tasker):
 			args.device='cuda'
 			print('Trainer{} uses CUDA: {}, - device: {}'.format(rank, args.use_cuda, args.device))
 
-		# initialize the rpc group
-		rpc.init_rpc(
-			trainer_name,
-			rank = rank,
-			world_size=DIST_DEFAULT_WORLD_SIZE,
-			rpc_backend_options=rpc_backend_options,
-		)
-
 		# initialize the DDP group
 		dist.init_process_group(
 			backend=DIST_DEFAULT_BACKEND,
@@ -221,6 +212,13 @@ def worker(rank, args, dataset, tasker):
 			# build gcn
 			GCN[rank] = build_gcn(args, tasker, rank)
 			rpc_backend_options.set_device_map('trainer1',{rank: rank + 1})
+			# initialize the rpc group
+			rpc.init_rpc(
+				trainer_name,
+				rank = rank,
+				world_size=DIST_DEFAULT_WORLD_SIZE,
+				rpc_backend_options=rpc_backend_options,
+			)
 			if DIST_DEFAULT_WORLD_SIZE > 1:
 				# build remote module output
 				Remote_Module[rank] = RemoteModule(
