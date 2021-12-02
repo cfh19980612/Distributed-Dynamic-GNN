@@ -230,11 +230,26 @@ def worker(rank, args, dataset, tasker):
 
 		elif DIST_DEFAULT_WORLD_SIZE > 1 and rank == DIST_DEFAULT_WORLD_SIZE -1:  # the final trainer has no remote module output
 			# build gcn
+			# initialize the rpc group
+			rpc_backend_options.set_device_map('trainer0',{rank: rank - 1})
+			rpc.init_rpc(
+				trainer_name,
+				rank = rank,
+				world_size=DIST_DEFAULT_WORLD_SIZE,
+				rpc_backend_options=rpc_backend_options,
+			)
 			print(Remote_Module)
 			GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
 
 		else:
 			# build gcn
+			# initialize the rpc group
+			rpc.init_rpc(
+				trainer_name,
+				rank = rank,
+				world_size=DIST_DEFAULT_WORLD_SIZE,
+				rpc_backend_options=rpc_backend_options,
+			)
 			GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
 			# build remote module output
 			Remote_Module[rank] = RemoteModule(
