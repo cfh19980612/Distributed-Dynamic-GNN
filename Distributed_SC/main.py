@@ -20,25 +20,27 @@ from torch.utils.data.distributed import DistributedSampler
 import sys
 sys.path.append('../')
 #datasets
-import bitcoin_dl as bc
+from data_process import bitcoin_dl as bc
 # import elliptic_temporal_dl as ell_temp
 # import uc_irv_mess_dl as ucim
-import auto_syst_dl as aus
+from data_process import auto_syst_dl as aus
 # import reddit_dl as rdt
-import sbm_dl as sbm
+from data_process import sbm_dl as sbm
+from data_process import epinion_dl as ep
+from data_process import yt_dl as yt
+
 #taskers
-import link_pred_tasker as lpt
-import epinion_dl as ep
-import yt_dl as yt
+from tasker import link_pred_tasker as lpt
 # import edge_cls_tasker as ect
 # import node_cls_tasker as nct
 
 #models
-import models as mls
-import egcn_h
-import egcn_o
-import egcn_h_fp
-import Cross_Entropy as ce
+from model import models as mls
+from model import egcn_h
+from model import egcn_o
+from model import egcn_h_fp
+from model import Cross_Entropy as ce
+
 import trainer as tr
 
 torch.multiprocessing.set_start_method('spawn',force=True)

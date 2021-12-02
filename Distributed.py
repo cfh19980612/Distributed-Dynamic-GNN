@@ -93,7 +93,7 @@ def build_dataset(args, rankID):
 			args.sbm_args = args.sbm20_args
 		elif args.data == 'sbm50':
 			args.sbm_args = args.sbm50_args
-		return sbm.sbm_dataset(args, rankID)
+		return sbm.sbm_dataset(args)
 	elif args.data == 'epinions':
 		return ep.epinion_dataset(args, rankID)
 	elif args.data == 'youtube':

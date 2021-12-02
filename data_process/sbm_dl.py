@@ -3,7 +3,7 @@ import utils as u
 import os
 
 class sbm_dataset():
-    def __init__(self,args, rankID):
+    def __init__(self,args):
         assert args.task in ['link_pred'], 'sbm only implements link_pred'  # assert:断言， 当条件不满足直接返回异常
 
         # 定义字典，u.Namespace 将字典中对象的调用改为 dict.object
@@ -19,7 +19,7 @@ class sbm_dataset():
         注：tensor矩阵切片操作
         edges[:,self.ecols.TimeStep] -> 取出edges矩阵的第四列的所有内容，是一维的tensor矩阵
         '''
-        edges = self.load_edges(args.sbm_args, rankID)  # 从文件中按行读取数据，构造成tensor矩阵
+        edges = self.load_edges(args.sbm_args)  # 从文件中按行读取数据，构造成tensor矩阵
         timesteps = u.aggregate_by_time(edges[:,self.ecols.TimeStep], args.sbm_args.aggr_time)  # 首先取edges矩阵的第四列(对应时刻)所有元素
         self.max_time = timesteps.max()
         self.min_time = timesteps.min()
@@ -66,7 +66,7 @@ class sbm_dataset():
         num_nodes = all_ids.max() + 1
         return num_nodes
 
-    def load_edges(self, sbm_args, rankID, starting_line = 1):
+    def load_edges(self, sbm_args, starting_line = 1):
         file = os.path.join(sbm_args.folder,sbm_args.edges_file)
         with open(file) as f:
             lines = f.read().splitlines()

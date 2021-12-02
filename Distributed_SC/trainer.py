@@ -1,12 +1,12 @@
 import torch
 import utils as u
-import logger
 import time
 import pandas as pd
 import numpy as np
 import os
 import copy
 
+from log import logger
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
