@@ -226,6 +226,7 @@ def worker(rank, args, dataset, tasker):
 								module_cls = RNN_Send_Module,
 								args=(GCN[rank]),
 								)
+			print(Remote_Module)
 
 		elif DIST_DEFAULT_WORLD_SIZE > 1 and rank == DIST_DEFAULT_WORLD_SIZE -1:  # the final trainer has no remote module output
 			# build gcn
