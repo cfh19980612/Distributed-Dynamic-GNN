@@ -220,7 +220,7 @@ def worker(rank, args, dataset, tasker):
 		if rank == 0: # the first trainer
 			# build gcn
 			GCN[rank] = build_gcn(args, tasker, rank)
-			rpc_backend_options.set_device_map(trainer_name,{rank, rank + 1})
+			rpc_backend_options.set_device_map(trainer_name,{rank: rank + 1})
 			if DIST_DEFAULT_WORLD_SIZE > 1:
 				# build remote module output
 				Remote_Module[rank] = RemoteModule(
