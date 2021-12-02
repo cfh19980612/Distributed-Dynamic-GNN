@@ -229,6 +229,7 @@ def worker(rank, args, dataset, tasker):
 
 		elif DIST_DEFAULT_WORLD_SIZE > 1 and rank == DIST_DEFAULT_WORLD_SIZE -1:  # the final trainer has no remote module output
 			# build gcn
+			print(Remote_Module)
 			GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
 
 		else:
