@@ -226,7 +226,7 @@ def worker(rank, args, dataset, tasker):
 				world_size=DIST_DEFAULT_WORLD_SIZE,
 				rpc_backend_options=rpc_backend_options,
 			)
-			print('rank',Remote_Module)
+			# print('rank',Remote_Module)
 
 		elif DIST_DEFAULT_WORLD_SIZE > 1 and rank == DIST_DEFAULT_WORLD_SIZE -1:  # the final trainer has no remote module output
 			print(trainer_name)
