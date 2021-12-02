@@ -233,7 +233,7 @@ def worker(rank, args, dataset, tasker):
 			print(trainer_name)
 			# build gcn
 			# initialize the rpc group
-			rpc_backend_options.set_device_map('trainer0',{rank: rank - 1})
+			# rpc_backend_options.set_device_map('trainer0',{rank: rank - 1})
 			rpc.init_rpc(
 				trainer_name,
 				rank = rank,
