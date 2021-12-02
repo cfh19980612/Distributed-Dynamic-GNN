@@ -52,7 +52,7 @@ DIST_DEFAULT_PORT = '12344'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
 DIST_DEFAULT_WORLD_SIZE = 2
 rpc_backend_options = TensorPipeRpcBackendOptions()
-rpc_backend_options.init_method = "tcp://localhost:12345"
+rpc_backend_options.init_method = "tcp://localhost:12349"
 
 GCN = [None for i in range (DIST_DEFAULT_WORLD_SIZE)]
 Remote_Module = [None for i in range (DIST_DEFAULT_WORLD_SIZE - 1)]
