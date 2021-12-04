@@ -138,6 +138,7 @@ class GRCU(torch.nn.Module):
         weight_seq = []  # 该层每一时刻的GCN参数
         for t,Ahat in enumerate(A_list): # 计算t时刻的隐藏状态（该时刻GCN的参数）以及节点embedding
             node_embs = node_embs_list[t] # 读取t时刻的上一层节点特征H_t^l
+            print(node_embs)
             #first evolve the weights from the initial and use the new weights with the node_embs
             # print('before:',GCN_weights)
             GCN_weights = self.evolve_weights(GCN_weights,node_embs,mask_list[t])  # GRU计算
