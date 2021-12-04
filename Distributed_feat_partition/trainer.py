@@ -270,15 +270,17 @@ class Trainer():
 
 			nodes = self.tasker.prepare_node_feats(sample.hist_ndFeats_list[i])  # 稀疏的点的特征矩阵转稠密矩阵
 			# print(nodes)
-			# # if feature partition
-			# if self.args.partition == 'feature':
-			# 	if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
-			# 		nodes['values'] = nodes['values'][:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
-			# 	else:
-			# 		nodes['values'] = nodes['values'][:,self.rank*self.feature_per_node:]
+			# if feature partition
+			if self.args.partition == 'feature':
+				nodes = nodes.to_dense()
+				if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
+					nodes = nodes[:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
+				else:
+					nodes = nodes[:,self.rank*self.feature_per_node:]
+				
 
 			sample.hist_ndFeats_list[i] = nodes.to(self.device)
-			print(sample.hist_ndFeats_list[i])
+			# print(sample.hist_ndFeats_list[i])
 			node_mask = sample.node_mask_list[i]
 			sample.node_mask_list[i] = node_mask.to(self.device).t() #transposed to have same dimensions as scorer
 
