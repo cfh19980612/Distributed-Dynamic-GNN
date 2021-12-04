@@ -269,7 +269,7 @@ class Trainer():
 			sample.hist_adj_list[i] = adj.to(self.device)
 
 			nodes = self.tasker.prepare_node_feats(sample.hist_ndFeats_list[i])  # 稀疏的点的特征矩阵转稠密矩阵
-			print(nodes)
+			# print(nodes)
 			# if feature partition
 			if self.args.partition == 'feature':
 				if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
