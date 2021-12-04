@@ -46,9 +46,9 @@ class Trainer():
 			self.hist_ndFeats_list = [self.tasker.nodes_feats.float()]
 		if self.args.partition == 'feature':
 			if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
-				self.feature_per_node = self.tasker.feat_per_node//self.DIST_DEFAULT_WORLD_SIZE
+				self.feature_per_node = self.tasker.feats_per_node//self.DIST_DEFAULT_WORLD_SIZE
 			else:
-				self.feature_per_node = self.tasker.feat_per_node // self.DIST_DEFAULT_WORLD_SIZE + self.tasker.feat_per_node%self.DIST_DEFAULT_WORLD_SIZE
+				self.feature_per_node = self.tasker.feats_per_node // self.DIST_DEFAULT_WORLD_SIZE + self.tasker.feats_per_node%self.DIST_DEFAULT_WORLD_SIZE
 	def init_optimizers(self,args):
 		# gcn网络优化器，即example中的EGCN网络
 		params = self.gcn.parameters()
