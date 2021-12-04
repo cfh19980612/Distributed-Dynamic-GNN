@@ -31,7 +31,7 @@ class EGCN(torch.nn.Module):
         # if feature partition
         self.partition = partition
         if self.partition == 'feature':
-            if self.rank != world_size - 1:
+            if rank != world_size - 1:
                 feats_per_node = tasker.feats_per_node // world_size
             else:
                 feats_per_node = tasker.feats_per_node // world_size + tasker.feats_per_node%world_size
