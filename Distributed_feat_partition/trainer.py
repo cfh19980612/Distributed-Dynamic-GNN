@@ -273,9 +273,9 @@ class Trainer():
 			# if feature partition
 			if self.args.partition == 'feature':
 				if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
-					sample.hist_ndFeats_list[i] = sample.hist_ndFeats_list[i][:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
+					nodes = nodes[:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
 				else:
-					sample.hist_ndFeats_list[i] = sample.hist_ndFeats_list[i][:,self.rank*self.feature_per_node:]
+					nodes = nodes[:,self.rank*self.feature_per_node:]
 
 			sample.hist_ndFeats_list[i] = nodes.to(self.device)
 			node_mask = sample.node_mask_list[i]
