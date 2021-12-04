@@ -68,6 +68,7 @@ class Link_Pred_Tasker():
 
 	# 	return dill.dumps(prepare_node_feats)
 	def prepare_node_feats(self, node_feats):
+		print(self.data.num_nodes, node_feats.size())
 		if self.args.use_2_hot_node_feats or self.args.use_1_hot_node_feats:
 			return u.sparse_prepare_tensor(node_feats,
 											torch_size= [self.data.num_nodes,
