@@ -45,12 +45,12 @@ class Link_Pred_Tasker():
 			max_deg,_ = tu.get_max_degs(self.args, self.data)
 			self.feats_per_node = max_deg
 
-		# if feature partition
-		if self.args.partition == 'feature':
-			if self.rankID != self.world_size - 1:
-				self.feats_per_node = self.feats_per_node // self.world_size
-			else:
-				self.feats_per_node = self.feats_per_node // self.world_size + self.feats_per_node%self.world_size
+		# # if feature partition
+		# if self.args.partition == 'feature':
+		# 	if self.rankID != self.world_size - 1:
+		# 		self.feats_per_node = self.feats_per_node // self.world_size
+		# 	else:
+		# 		self.feats_per_node = self.feats_per_node // self.world_size + self.feats_per_node%self.world_size
 
 		# self.get_node_feats = self.build_get_node_feats(args,dataset)
 		# self.prepare_node_feats = self.build_prepare_node_feats(args,dataset)
@@ -68,7 +68,6 @@ class Link_Pred_Tasker():
 
 	# 	return dill.dumps(prepare_node_feats)
 	def prepare_node_feats(self, node_feats):
-		print(self.data.num_nodes, node_feats['vals'].shape(), self.feats_per_node)
 		if self.args.use_2_hot_node_feats or self.args.use_1_hot_node_feats:
 			return u.sparse_prepare_tensor(node_feats,
 											torch_size= [self.data.num_nodes,
@@ -87,20 +86,23 @@ class Link_Pred_Tasker():
 		elif self.args.use_1_hot_node_feats:  # 针对无向图
 			max_deg,_ = tu.get_max_degs(self.args, self.data)
 			self.feats_per_node = max_deg
+			return tu.get_1_hot_deg_feats(adj,
+											max_deg,
+											self.data.num_nodes)
 			# @functools.wraps(data)
-			if self.args.partition == 'feature':
-				feature = tu.get_1_hot_deg_feats(adj,
-												max_deg,
-												self.data.num_nodes)
-				if self.rankID != self.world_size - 1:
-					feature['idx'] = feature['idx'][self.feats_per_node*self.rankID:self.feats_per_node*self.rankID -1]
-				else:
-					feature['idx'] = feature['idx'][self.feats_per_node*self.rankID:]
-				return feature
-			else:
-				return tu.get_1_hot_deg_feats(adj,
-												max_deg,
-												self.data.num_nodes)
+			# if self.args.partition == 'feature':
+			# 	feature = tu.get_1_hot_deg_feats(adj,
+			# 									max_deg,
+			# 									self.data.num_nodes)
+			# 	if self.rankID != self.world_size - 1:
+			# 		feature['idx'] = feature['idx'][self.feats_per_node*self.rankID:self.feats_per_node*self.rankID -1]
+			# 	else:
+			# 		feature['idx'] = feature['idx'][self.feats_per_node*self.rankID:]
+			# 	return feature
+			# else:
+			# 	return tu.get_1_hot_deg_feats(adj,
+			# 									max_deg,
+			# 									self.data.num_nodes)
 		else:
 			# @functools.wraps(data)
 			return self.data.nodes_feats

@@ -44,7 +44,11 @@ class Trainer():
 			adj_matrix = u.sparse_prepare_tensor(self.tasker.adj_matrix, torch_size = [self.num_nodes], ignore_batch_dim = False)
 			self.hist_adj_list = [adj_matrix]
 			self.hist_ndFeats_list = [self.tasker.nodes_feats.float()]
-
+		if self.args.partition == 'feature':
+			if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
+				self.feature_per_node = self.tasker.feat_per_node//self.DIST_DEFAULT_WORLD_SIZE
+			else:
+				self.feature_per_node = self.tasker.feat_per_node // self.DIST_DEFAULT_WORLD_SIZE + self.tasker.feat_per_node%self.DIST_DEFAULT_WORLD_SIZE
 	def init_optimizers(self,args):
 		# gcn网络优化器，即example中的EGCN网络
 		params = self.gcn.parameters()
@@ -174,24 +178,6 @@ class Trainer():
 			else:
 				s = self.prepare_sample(s)  #将稀疏矩阵转为稠密矩阵，用来计算
 
-			# for computing auc
-			# # positive prediction
-			# predictions_pos, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
-			# 									   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
-			# 									   s.label_sp_pos['idx'],              # s.label_sp['idx] 训练节点序号
-			# 									   s.node_mask_list)
-			# # negative prediction
-			# predictions_neg, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
-			# 									   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
-			# 									   s.label_sp_neg['idx'],              # s.label_sp['idx] 训练节点序号
-			# 									   s.node_mask_list)
-			# # print(predictions_pos.size())
-			# # compute loss
-			# scores = torch.cat([predictions_pos.squeeze(1), predictions_neg.squeeze(1)])
-			# labels = torch.cat([s.label_sp_pos['vals'], s.label_sp_neg['vals']]).type_as(scores)
-			# loss = F.binary_cross_entropy_with_logits(scores, labels)
-			# print(predictions.size(0), s.label_sp['idx'].size(1), s.label_sp['vals'].size(0))
-
 			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
 												   s.label_sp,              # s.label_sp['idx] 训练节点序号
@@ -239,13 +225,6 @@ class Trainer():
 							  hist_ndFeats_list,
 							  mask_list)
 
-		# # feature partition: 每个client用一部分特征训练
-		# if self.args.partition == 'feature':
-		# 	nodes_embs = gcn(self.gcn_fp,
-		# 		              hist_adj_list,
-		# 					  hist_ndFeats_list,
-		# 					  mask_list)
-
 		predict_batch_size = 128
 
 		# print(nodes_embs,node_indices)
@@ -291,31 +270,16 @@ class Trainer():
 
 			nodes = self.tasker.prepare_node_feats(sample.hist_ndFeats_list[i])  # 稀疏的点的特征矩阵转稠密矩阵
 
+			# if feature partition
+			if self.args.partition == 'feature':
+				if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
+					sample.hist_ndFeats_list[i] = sample.hist_ndFeats_list[i][:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
+				else:
+					sample.hist_ndFeats_list[i] = sample.hist_ndFeats_list[i][:,self.rank*self.feature_per_node:]
+
 			sample.hist_ndFeats_list[i] = nodes.to(self.device)
 			node_mask = sample.node_mask_list[i]
 			sample.node_mask_list[i] = node_mask.to(self.device).t() #transposed to have same dimensions as scorer
-
-		# # prepare positive edges'label
-		# label_sp_pos = self.ignore_batch_dim(sample.label_sp_pos)
-		# if self.args.task in ["link_pred", "edge_cls"]:
-		# 	# 原始的label稀疏矩阵为[[source,target], [sorce,target]],需要转换为[[source_set], [target_Set]]方便获取对应点的特征
-		# 	label_sp_pos['idx'] = label_sp_pos['idx'].to(self.device).t()   ####### ALDO TO CHECK why there was the .t() -----> because I concatenate embeddings when there are pairs of them, the embeddings are row vectors after the transpose
-		# else:
-		# 	label_sp_pos['idx'] = label_sp_pos['idx'].to(self.device)
-
-		# label_sp_pos['vals'] = label_sp_pos['vals'].type(torch.long).to(self.device)
-		# sample.label_sp_pos = label_sp_pos
-
-		# # prepare negative edges'label
-		# label_sp_neg = self.ignore_batch_dim(sample.label_sp_neg)
-		# if self.args.task in ["link_pred", "edge_cls"]:
-		# 	# 原始的label稀疏矩阵为[[source,target], [sorce,target]],需要转换为[[source_set], [target_Set]]方便获取对应点的特征
-		# 	label_sp_neg['idx'] = label_sp_neg['idx'].to(self.device).t()   ####### ALDO TO CHECK why there was the .t() -----> because I concatenate embeddings when there are pairs of them, the embeddings are row vectors after the transpose
-		# else:
-		# 	label_sp_neg['idx'] = label_sp_neg['idx'].to(self.device)
-
-		# label_sp_neg['vals'] = label_sp_neg['vals'].type(torch.long).to(self.device)
-		# sample.label_sp_neg = label_sp_neg
 
 		label_sp = self.ignore_batch_dim(sample.label_sp)
 		for i in range (len(label_sp)):

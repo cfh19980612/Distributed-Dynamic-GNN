@@ -147,7 +147,7 @@ def build_gcn(args,tasker,rank,remote_module = None):
 		elif args.model == 'egcn':
 			return egcn.EGCN(gcn_args, activation = torch.nn.RReLU()).to(args.device)
 		elif args.model == 'egcn_h':
-			return egcn_h.EGCN(gcn_args, args.partition, tasker, rank, remote_module, activation = torch.nn.RReLU(), device = args.device)
+			return egcn_h.EGCN(gcn_args, args.partition, tasker, rank, DIST_DEFAULT_WORLD_SIZE, remote_module, activation = torch.nn.RReLU(), device = args.device)
 		elif args.model == 'skipfeatsegcn_h':
 			return egcn_h.EGCN(gcn_args, activation = torch.nn.RReLU(), device = args.device, skipfeats=True)
 		elif args.model == 'egcn_o':

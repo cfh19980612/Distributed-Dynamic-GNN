@@ -24,11 +24,19 @@ from torch.distributed import ReduceOp
 PARAMETER_DICT = {}
 
 class EGCN(torch.nn.Module):
-    def __init__(self, args, partition, tasker, rank, remote_module, activation, device='cpu', skipfeats=False):
+    def __init__(self, args, partition, tasker, rank, world_size, remote_module, activation, device='cpu', skipfeats=False):
         super(EGCN,self).__init__()
         GRCU_args = u.Namespace({})  #将字典的索引改为 dict['key'] -> dict.key
         # print('feat_per_node,',tasker.feats_per_node)
-        feats = [tasker.feats_per_node,
+        # if feature partition
+        self.partition = partition
+        if self.partition == 'feature':
+            if self.rank != world_size - 1:
+                feats_per_node = tasker.feats_per_node // world_size
+            else:
+                feats_per_node = tasker.feats_per_node // world_size + tasker.feats_per_node%world_size
+
+        feats = [feats_per_node,
                  args.layer_1_feats,
                  args.layer_2_feats]
         self.tasker = tasker
