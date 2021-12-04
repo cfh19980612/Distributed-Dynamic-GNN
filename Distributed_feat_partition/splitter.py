@@ -13,7 +13,7 @@ class splitter():
     '''
     def __init__(self, args, tasker, scale, rank):
         train_total = (tasker.data.max_time + 1) * args.train_proportion
-        length = train_total // scale
+        # length = train_total // scale
 
         if tasker.is_static: #### For static datsets
             assert args.train_proportion + args.dev_proportion < 1, \
@@ -57,22 +57,22 @@ class splitter():
             #only the training one requires special handling on start, the others are fine with the split IDX.
             # train
             # print ('TIME', tasker.data.max_time, tasker.data.min_time )
-            max_timestep = (rank+1)*length + args.num_hist_steps
+            # max_timestep = (rank+1)*length + args.num_hist_steps
             '''
             key point: num_hist_step 为时序图的长度，每一个训练样本（或验证样本和测试样本）都为某一时刻的graph
             -> 通过将该时刻的graph与前num_hist_step时刻的图组合成为一个时序图，网络的输出只是最后一时刻，即该训练
             -> 样本所在时刻的图embedding
             '''
             # start = tasker.data.min_time + args.num_hist_steps + rank*length  #0 + args.adj_mat_time_window
-            start = int(np.floor(tasker.data.min_time + rank*length))
-            end = args.train_proportion
+            start = 0
+            end = int(np.floor((tasker.data.max_time + 1) * args.train_proportion)) - 1
             # print ('TIME-MAX', tasker.data.max_time.type(torch.float))
             # end = int(np.floor(train_total.type(torch.float) * end)) + start  # np.floor向下取整 np.floor(24 * 0.7)
-            end = int(length.item()) + start - 1
-            num_hist_Steps = int(length.item())
+            # end = int(length.item()) + start - 1
+            num_hist_Steps = int(np.floor(tasker.data.max_time.type(torch.float) * args.train_proportion))
             train = data_split(tasker, start, end, num_hist_Steps, test = False)
             train = DataLoader(train,**args.data_loading_params)
-            # print(start,end)
+            print(start,end)
 
             # dev
             start = int(np.floor(train_total)) - 1
@@ -83,7 +83,7 @@ class splitter():
             else:
                 dev = data_split(tasker, start, end, num_hist_Steps, test = True)
             dev = DataLoader(dev,num_workers=args.data_loading_params['num_workers'])
-            # print(start,end)
+            print(start,end)
 
             # test
             start = end
@@ -95,7 +95,7 @@ class splitter():
             else:
                 test = data_split(tasker, start, end, num_hist_Steps, test = True)
             test = DataLoader(test,num_workers=args.data_loading_params['num_workers'])
-            # print(start,end)
+            print(start,end)
             print ('Dataset splits sizes:  train',len(train), 'dev',len(dev), 'test',len(test))
 
             self.tasker = tasker
