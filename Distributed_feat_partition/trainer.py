@@ -101,6 +101,7 @@ class Trainer():
 		for s in self.splitter.train:
 			train_data_load.append(s)
 		time_data_end = time.time()
+		# print(len(train_data_load))
 		print('[{},{}] |Training data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
 
 		# generate the test dataload
@@ -161,7 +162,7 @@ class Trainer():
 		dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
 		dataframe = pd.concat([dataframe, pd.DataFrame(Recall,columns=['P'])],axis=1)
 		dataframe = pd.concat([dataframe, pd.DataFrame(F1,columns=['Q'])],axis=1)
-		dataframe.to_csv(f"../result/SC_{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
+		dataframe.to_csv(f"../result/{self.args.partition}_{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
 
 	def run_epoch(self, split, epoch, set_name, grad):
 		Loss = []
@@ -193,11 +194,16 @@ class Trainer():
 
 			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
-												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
+												   s.label_sp,              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
 
 			# back proporgation
-			loss = self.comp_loss(predictions,s.label_sp['vals'])
+			labels = []
+			for time in range (len(s.hist_adj_list)):
+				labels.append(s.label_sp[time]['vals'])
+			predictions = torch.cat(predictions, dim=0)
+			labels = torch.cat(labels, dim=0)
+			loss = self.comp_loss(predictions,labels)
 			# if grad:
 			# 	self.optim_step(loss)
 			Loss.append(loss)
@@ -214,7 +220,7 @@ class Trainer():
 
 			# 测试集上计算precision，recall和f1
 			if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred' and self.rank == 0:
-				precision, recall, f1, acc = self.compute_acc(predictions, s.label_sp['vals'])
+				precision, recall, f1, acc = self.compute_acc(predictions, labels)
 
 		# average training loss
 		loss = sum(Loss)
@@ -226,13 +232,13 @@ class Trainer():
 		else:
 			return loss, nodes_embs
 
-	def predict(self,gcn,hist_adj_list,hist_ndFeats_list,node_indices,mask_list):
-
+	def predict(self,gcn,hist_adj_list,hist_ndFeats_list,label_sp,mask_list):
+		gather_prediction_list = []
 		# 返回最后一时刻的图节点embeddings
 		nodes_embs = gcn(hist_adj_list,
 							  hist_ndFeats_list,
 							  mask_list)
-		
+
 		# # feature partition: 每个client用一部分特征训练
 		# if self.args.partition == 'feature':
 		# 	nodes_embs = gcn(self.gcn_fp,
@@ -241,15 +247,18 @@ class Trainer():
 		# 					  mask_list)
 
 		predict_batch_size = 128
-		gather_predictions=[]
 
 		# print(nodes_embs,node_indices)
-		for i in range(1 +(node_indices.size(1)//predict_batch_size)):
-			cls_input = self.gather_node_embs(nodes_embs, node_indices[:, i*predict_batch_size:(i+1)*predict_batch_size])  # 获取一个batch的边embedding
-			predictions = self.classifier(cls_input)
-			gather_predictions.append(predictions)
-		gather_predictions=torch.cat(gather_predictions, dim=0)
-		return gather_predictions, nodes_embs
+		for time in range (len(hist_adj_list)):
+			gather_predictions=[]
+			node_indices = label_sp[time]['idx']
+			for i in range(1 +(node_indices.size(1)//predict_batch_size)):
+				cls_input = self.gather_node_embs(nodes_embs[time], node_indices[:, i*predict_batch_size:(i+1)*predict_batch_size])  # 获取一个batch的边embedding
+				predictions = self.classifier(cls_input)
+				gather_predictions.append(predictions)
+			gather_prediction_list.append(torch.cat(gather_predictions, dim=0))
+			# gather_prediction_list.append(gather_predictions)
+		return gather_prediction_list, nodes_embs
 
 	def gather_node_embs(self,nodes_embs,node_indices):
 		cls_input = []
@@ -309,13 +318,14 @@ class Trainer():
 		# sample.label_sp_neg = label_sp_neg
 
 		label_sp = self.ignore_batch_dim(sample.label_sp)
-		if self.args.task in ["link_pred", "edge_cls"]:
-			# 原始的label稀疏矩阵为[[source,target], [sorce,target]],需要转换为[[source_set], [target_Set]]方便获取对应点的特征
-			label_sp['idx'] = label_sp['idx'].to(self.device).t()   ####### ALDO TO CHECK why there was the .t() -----> because I concatenate embeddings when there are pairs of them, the embeddings are row vectors after the transpose
-		else:
-			label_sp['idx'] = label_sp['idx'].to(self.device)
+		for i in range (len(label_sp)):
+			if self.args.task in ["link_pred", "edge_cls"]:
+				# 原始的label稀疏矩阵为[[source,target], [sorce,target]],需要转换为[[source_set], [target_Set]]方便获取对应点的特征
+				label_sp[i]['idx'] = label_sp[i]['idx'].to(self.device).t()   ####### ALDO TO CHECK why there was the .t() -----> because I concatenate embeddings when there are pairs of them, the embeddings are row vectors after the transpose
+			else:
+				label_sp[i]['idx'] = label_sp[i]['idx'].to(self.device)
 
-		label_sp['vals'] = label_sp['vals'].type(torch.long).to(self.device)
+			label_sp[i]['vals'] = label_sp[i]['vals'].type(torch.long).to(self.device)
 		sample.label_sp = label_sp
 
 		return sample
@@ -331,9 +341,10 @@ class Trainer():
 		return sample
 
 	def ignore_batch_dim(self,adj):
-		if self.args.task in ["link_pred", "edge_cls"]:
-			adj['idx'] = adj['idx'][0]
-		adj['vals'] = adj['vals'][0]
+		for i in range (len(adj)):
+			if self.args.task in ["link_pred", "edge_cls"]:
+				adj[i]['idx'] = adj[i]['idx'][0]
+			adj[i]['vals'] = adj[i]['vals'][0]
 		return adj
 
 	def save_node_embs_csv(self, nodes_embs, indexes, file_name):

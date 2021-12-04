@@ -12,7 +12,7 @@ class splitter():
     test
     '''
     def __init__(self, args, tasker, scale, rank):
-        train_total = (tasker.data.max_time + 1 - args.num_hist_steps) * args.train_proportion
+        train_total = (tasker.data.max_time + 1) * args.train_proportion
         length = train_total // scale
 
         if tasker.is_static: #### For static datsets
@@ -64,34 +64,38 @@ class splitter():
             -> 样本所在时刻的图embedding
             '''
             # start = tasker.data.min_time + args.num_hist_steps + rank*length  #0 + args.adj_mat_time_window
-            start = int(np.floor(tasker.data.min_time + args.num_hist_steps + rank*length))
+            start = int(np.floor(tasker.data.min_time + rank*length))
             end = args.train_proportion
             # print ('TIME-MAX', tasker.data.max_time.type(torch.float))
             # end = int(np.floor(train_total.type(torch.float) * end)) + start  # np.floor向下取整 np.floor(24 * 0.7)
-            end = int(length.item()) + start
-            train = data_split(tasker, start, end, test = False)
+            end = int(length.item()) + start - 1
+            num_hist_Steps = int(length.item())
+            train = data_split(tasker, start, end, num_hist_Steps, test = False)
             train = DataLoader(train,**args.data_loading_params)
-            # print(start,end)
+            print(start,end)
+
             # dev
-            start = int(np.floor(train_total)) + args.num_hist_steps
-            end = args.dev_proportion
-            end = int(np.floor(tasker.data.max_time.type(torch.float) * end)) + start
+            start = int(np.floor(train_total)) - 1
+            end = int(np.floor((tasker.data.max_time + 1) * args.dev_proportion)) + start
+            num_hist_Steps = int(np.floor(tasker.data.max_time.type(torch.float) * args.dev_proportion))
             if args.task == 'link_pred':
-                dev = data_split(tasker, start, end, test = True, all_edges=True)
+                dev = data_split(tasker, start, end, num_hist_Steps, test = True, all_edges=True)
             else:
-                dev = data_split(tasker, start, end, test = True)
+                dev = data_split(tasker, start, end, num_hist_Steps, test = True)
             dev = DataLoader(dev,num_workers=args.data_loading_params['num_workers'])
-            # print(start,end)
+            print(start,end)
+
             # test
             start = end
             #the +1 is because I assume that max_time exists in the dataset
             end = int(tasker.data.max_time)
+            num_hist_Steps = end - start
             if args.task == 'link_pred':
-                test = data_split(tasker, start, end, test = True, all_edges=True)
+                test = data_split(tasker, start, end, num_hist_Steps, test = True, all_edges=True)
             else:
-                test = data_split(tasker, start, end, test = True)
+                test = data_split(tasker, start, end, num_hist_Steps, test = True)
             test = DataLoader(test,num_workers=args.data_loading_params['num_workers'])
-            # print(start,end)
+            print(start,end)
             print ('Dataset splits sizes:  train',len(train), 'dev',len(dev), 'test',len(test))
 
             self.tasker = tasker
@@ -101,25 +105,26 @@ class splitter():
 
 
 class data_split(Dataset):
-    def __init__(self, tasker, start, end, test, **kwargs):
+    def __init__(self, tasker, start, end, num_hist_Steps, test, **kwargs):
         '''
         start and end are indices indicating what items belong to this split
         '''
         self.tasker = tasker
         self.start = start
         self.end = end
+        self.num_hist_Steps = num_hist_Steps
         self.test = test
         self.kwargs = kwargs
 
     # 类特殊方法，外部直接调用len()即可
     def __len__(self):
-        return self.end-self.start
+        return 1
 
     # 类特殊方法，当调用train[t],会调用该方法；还可以用在迭代器中，for s in train: (参考trainer.py)
     def __getitem__(self,idx):
-        idx = self.start + idx
+        idx = self.end
         # 生成以idx为最后时刻的时序图
-        t = self.tasker.get_sample(idx, test = self.test, **self.kwargs)
+        t = self.tasker.get_sample(idx, self.num_hist_Steps, test = self.test, **self.kwargs)
         return t
 
 

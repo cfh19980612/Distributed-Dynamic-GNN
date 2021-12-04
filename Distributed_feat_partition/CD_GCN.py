@@ -7,11 +7,6 @@ import math
 from collections import OrderedDict
 from torch.nn import init
 
-import torch.distributed as dist
-from torch.distributed import ReduceOp
-# rpc_backend_options = TensorPipeRpcBackendOptions()
-# rpc_backend_options.init_method = "tcp://localhost:12349"
-
 '''
 注： EGCN用来预测时序输出，即输入一个时序图，预测最后一时刻的图上的节点embedding
 ->  在构造训练，验证和测试集时，数据集中每一个数据都是某一时刻的图，在传入EGCN之前
@@ -24,7 +19,7 @@ from torch.distributed import ReduceOp
 PARAMETER_DICT = {}
 
 class EGCN(torch.nn.Module):
-    def __init__(self, args, partition, tasker, rank, remote_module, activation, device='cpu', skipfeats=False):
+    def __init__(self, args, tasker, rank, remote_module, activation, device='cpu', skipfeats=False):
         super(EGCN,self).__init__()
         GRCU_args = u.Namespace({})  #将字典的索引改为 dict['key'] -> dict.key
         # print('feat_per_node,',tasker.feats_per_node)
@@ -38,7 +33,6 @@ class EGCN(torch.nn.Module):
         self.GCN_init_weights = []
         self.remote_module = remote_module
         self.device = device
-        self.partition = partition
 
         if self.remote_module is not None:
             self.remote_module.cuda(rank)
@@ -51,8 +45,9 @@ class EGCN(torch.nn.Module):
                                      'activation': activation})
 
             self.GRCU_layers.append(GRCU(GRCU_args, i))
-            self.GCN_init_weights.append(Parameter(torch.Tensor(feats[i-1],feats[i])).cuda(rank))
-            self.reset_param(self.GCN_init_weights[i-1])
+            if rank == 0:
+                self.GCN_init_weights.append(Parameter(torch.Tensor(feats[i-1],feats[i])).cuda(rank))
+                self.reset_param(self.GCN_init_weights[i-1])
 
     # A_list: 所有时刻（训练样本所在时刻以及前num_hist_step时刻）的图拉普拉斯矩阵； Node_list:上一层所有时刻节点的特征； node_mask_list:
     def forward(self,A_list, Nodes_list, nodes_mask_list):
@@ -61,21 +56,14 @@ class EGCN(torch.nn.Module):
 
         for (layer, unit) in enumerate(self.GRCU_layers):
             # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
-            gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = self.GCN_init_weights[layer])
-
-            if layer == 0 and self.partition == 'feature':
-                for i in range (len(Nodes_list)):
-                    node_embedding = Nodes_list[i]
-                    dist.all_reduce(node_embedding, op=ReduceOp.SUM)
-                    # node_embedding.wait()
-                    Nodes_list[i] = node_embedding
-                    # print(node_embedding)
-
-
+            if self.rank == 0:
+                gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = self.GCN_init_weights[layer],)
+            else:
+                gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,remote_module = self.remote_module)
             self.GCN_list.append(gcn_weights[-1])
 
             # 在用snapshot partition时，需要将每一层的输出结果都保存，不能覆盖，因为每一层RNN都要通讯
-        out = Nodes_list  # 返回最后一时刻的图节点的最后一层embedding输出
+        out = Nodes_list[-1]  # 返回最后一时刻的图节点的最后一层embedding输出
         if self.skipfeats:  # ？？？？
             out = torch.cat((out,node_feats), dim=1)   # use node_feats.to_dense() if 2hot encoded input
         return out
@@ -119,12 +107,12 @@ class GRCU(torch.nn.Module):
     def forward(self,A_list,node_embs_list,mask_list,rank,GCN_init_weights = None, remote_module = None):
 
         if remote_module is not None:
-            # print('remote module')
+            print('remote module')
             GCN_weights = remote_module.forward(self.layer).cuda(rank)
         else:
-            # print('local GCN')
+            print('local GCN')
             GCN_weights = GCN_init_weights
-        # print('Trainer{} layer{}, GCN{}'.format(rank,self.layer,GCN_weights))
+        print('Trainer{} layer{}, GCN{}'.format(rank,self.layer,GCN_weights))
         # print(GCN_weights)
         out_seq = []  #该层的输出embedding列表
         weight_seq = []  # 该层每一时刻的GCN参数

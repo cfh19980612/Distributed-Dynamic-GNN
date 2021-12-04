@@ -30,7 +30,7 @@ from data_process import epinion_dl as ep
 from data_process import yt_dl as yt
 
 #taskers
-from tasker import link_pred_tasker as lpt
+import link_pred_tasker as lpt
 # import edge_cls_tasker as ect
 # import node_cls_tasker as nct
 
@@ -48,11 +48,9 @@ warnings.filterwarnings('ignore')
 
 DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
-DIST_DEFAULT_PORT = '12345'
+DIST_DEFAULT_PORT = '12344'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
-DIST_DEFAULT_WORLD_SIZE = 2
-rpc_backend_options = TensorPipeRpcBackendOptions()
-rpc_backend_options.init_method = "tcp://localhost:12349"
+DIST_DEFAULT_WORLD_SIZE = 1
 
 GCN = [None for i in range (DIST_DEFAULT_WORLD_SIZE)]
 Remote_Module = [None for i in range (DIST_DEFAULT_WORLD_SIZE - 1)]
@@ -113,9 +111,9 @@ def build_dataset(args):
 		raise NotImplementedError('only arxiv has been implemented')
 
 # 创建任务
-def build_tasker(args,dataset):
+def build_tasker(args,dataset,rank):
 	if args.task == 'link_pred':
-		return lpt.Link_Pred_Tasker(args,dataset,DIST_DEFAULT_WORLD_SIZE)
+		return lpt.Link_Pred_Tasker(args,dataset,DIST_DEFAULT_WORLD_SIZE, rank)
 	elif args.task == 'edge_cls':
 		return ect.Edge_Cls_Tasker(args,dataset)
 	elif args.task == 'node_cls':
@@ -149,10 +147,7 @@ def build_gcn(args,tasker,rank,remote_module = None):
 		elif args.model == 'egcn':
 			return egcn.EGCN(gcn_args, activation = torch.nn.RReLU()).to(args.device)
 		elif args.model == 'egcn_h':
-			if args.partition == 'feature':
-				return egcn_h_fp.EGCN(gcn_args, tasker, activation = torch.nn.RReLU())
-			else:
-				return egcn_h.EGCN(gcn_args, tasker, rank, remote_module, activation = torch.nn.RReLU(), device = args.device)
+			return egcn_h.EGCN(gcn_args, args.partition, tasker, rank, remote_module, activation = torch.nn.RReLU(), device = args.device)
 		elif args.model == 'skipfeatsegcn_h':
 			return egcn_h.EGCN(gcn_args, activation = torch.nn.RReLU(), device = args.device, skipfeats=True)
 		elif args.model == 'egcn_o':
@@ -185,12 +180,12 @@ class RNN_Send_Module(nn.Module):
 	def forward(self, layer):
 		return self.gcn.GCN_list[layer].cpu()
 
-def worker(rank, args, dataset, tasker):
+def worker(rank, args, dataset):
+	tasker = build_tasker(args, dataset, rank)
+	print('tasker complete!', tasker.feats_per_node)
 	# build splitter, use the rankid to split the dataset
 	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)
 	print('Trainer{} splitter complete!'.format(rank))
-
-	trainer_name = 'trainer{}'.format(rank)
 
 	if args.distributed:
 		# CPU or GPU
@@ -207,72 +202,14 @@ def worker(rank, args, dataset, tasker):
 			world_size=DIST_DEFAULT_WORLD_SIZE,
 			rank=rank
 		)
-
-		if rank == 0: # the first trainer
-			print(trainer_name)
-			# build gcn
-			GCN[rank] = build_gcn(args, tasker, rank)
-			# initialize the rpc group
-			rpc_backend_options.set_devices(["cuda:0", "cuda:1"])
-			rpc_backend_options.set_device_map('trainer1',{'cuda:0': 'cuda:1'})
-			# options = TensorPipeRpcBackendOptions(
-			# 			init_method= "tcp://localhost:12349",
-			# 			device_maps={"trainer1": {0: 1}}
-			# 			# maps worker0's cuda:0 to worker1's cuda:1
-			# 		)
-			rpc.init_rpc(
-				trainer_name,
-				rank = rank,
-				world_size=DIST_DEFAULT_WORLD_SIZE,
-				rpc_backend_options=rpc_backend_options,
-			)
-			# print('rank',Remote_Module)
-
-		elif DIST_DEFAULT_WORLD_SIZE > 1 and rank == DIST_DEFAULT_WORLD_SIZE -1:  # the final trainer has no remote module output
-			print(trainer_name)
-			# build gcn
-			# initialize the rpc group
-			# rpc_backend_options.set_device_map('trainer0',{rank: rank - 1})
-			# rpc_backend_options.set_devices(["cuda:1"])
-			rpc.init_rpc(
-				trainer_name,
-				rank = rank,
-				world_size=DIST_DEFAULT_WORLD_SIZE,
-				rpc_backend_options=rpc_backend_options,
-			)
-			if DIST_DEFAULT_WORLD_SIZE > 1:
-				# build remote module output
-				Remote_Module[rank-1] = RemoteModule(
-								trainer_name,
-								module_cls = RNN_Send_Module,
-								args=(GCN[rank-1]),
-								)
-			# print('rank',Remote_Module)
-			GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
-
-		else:
-			# build gcn
-			# initialize the rpc group
-			rpc.init_rpc(
-				trainer_name,
-				rank = rank,
-				world_size=DIST_DEFAULT_WORLD_SIZE,
-				rpc_backend_options=rpc_backend_options,
-			)
-			GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
-			# build remote module output
-			Remote_Module[rank] = RemoteModule(
-							trainer_name,
-							RNN_Send_Module,
-							args=(GCN[rank]),
-							kwargs=None,
-							)
+		# print('rank',Remote_Module)
+		GCN[rank] = build_gcn(args, tasker, rank)
 
 		# bind gpu with rank
 		if args.device == 'cuda':
 			torch.cuda.set_device(rank)
 			GCN[rank].cuda()
-		# GCN[rank] = DDP(GCN[rank].cuda(rank), device_ids=[rank])
+		GCN[rank] = DDP(GCN[rank].cuda(rank), device_ids=[rank])
 
 		# build the classifier
 		classifier = build_classifier(args,tasker)
@@ -335,8 +272,6 @@ def main(args):
 	dataset.max_time = dataset.max_time - 40
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
 	# build task
-	tasker = build_tasker(args, dataset)
-	print('tasker complete!', tasker.feats_per_node)
 
 	# build gcn and remote module
 	# GCN = [None for i in range (DIST_DEFAULT_WORLD_SIZE)]
@@ -371,11 +306,11 @@ def main(args):
 
 	if args.distributed:
 		mp.spawn(worker,
-					args=(args, dataset, tasker),
+					args=(args, dataset),
 					nprocs=DIST_DEFAULT_WORLD_SIZE,
 					join=True)
 	else:
-		worker(0, args, GCN, dataset, tasker)
+		worker(0, args, GCN, dataset)
 	toc = time.time()
 	print(f"Finished in {toc-tic:.2f}s")
 
