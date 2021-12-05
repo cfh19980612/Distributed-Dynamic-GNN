@@ -187,12 +187,19 @@ class Trainer():
 			labels = []
 			for time in range (len(s.hist_adj_list)):
 				labels.append(s.label_sp[time]['vals'])
-			predictions = torch.cat(predictions, dim=0)
-			labels = torch.cat(labels, dim=0)
-			loss = self.comp_loss(predictions,labels)
-			print(self.rank,': compute loss complete!')
+			for i in range (len(predictions)):
+				loss = self.comp_loss(predictions[i],labels[i])
+				if set_name == 'TRAIN':
+					# loss = sum(Loss)
+					if grad:
+						self.optim_step(loss)
+			print(self.rank,': backward complete!')
+			# predictions = torch.cat(predictions, dim=0)
+			# labels = torch.cat(labels, dim=0)
+			# loss = self.comp_loss(predictions,labels)
 			# if grad:
 			# 	self.optim_step(loss)
+
 			Loss.append(loss)
 			loss_test = loss
 
@@ -210,11 +217,11 @@ class Trainer():
 				precision, recall, f1, acc = self.compute_acc(predictions, labels)
 
 		# average training loss
-		if set_name == 'TRAIN':
-			loss = sum(Loss)
-			if grad:
-				self.optim_step(loss)
-			print(self.rank,': backward complete!')
+		# if set_name == 'TRAIN':
+		# 	loss = sum(Loss)
+		# 	if grad:
+		# 		self.optim_step(loss)
+		# 	print(self.rank,': backward complete!')
 		torch.set_grad_enabled(True)
 		if set_name=='TEST':
 			return nodes_embs, precision, recall, f1, acc
@@ -251,18 +258,13 @@ class Trainer():
 
 	def optim_step(self,loss):
 		self.tr_step += 1
-
-
 		if self.tr_step % self.args.steps_accum_gradients == 0:
 			self.gcn_opt.zero_grad()
 			self.classifier_opt.zero_grad()
-			# if self.args.partition == 'feature':
-			# 	self.gcn_fp_opt.zero_grad()
 			loss.backward()
 			self.gcn_opt.step()
 			self.classifier_opt.step()
-			# if self.args.partition == 'feature':
-			# 	self.gcn_fp_opt.step()
+
 
 
 	def prepare_sample(self,sample):
