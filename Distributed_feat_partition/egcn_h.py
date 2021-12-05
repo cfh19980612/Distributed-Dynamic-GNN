@@ -76,6 +76,7 @@ class EGCN(torch.nn.Module):
                 for i in range (len(Nodes_list)):
                     tensor = torch.arange(2, dtype=torch.int64) + 1 + 2 * self.rank
                     node_embedding = Nodes_list[i]
+                    tensor.cuda(self.rank)
                     dist.all_reduce(tensor, op=ReduceOp.SUM)
                     # node_embedding.wait()
                     print(tensor)
