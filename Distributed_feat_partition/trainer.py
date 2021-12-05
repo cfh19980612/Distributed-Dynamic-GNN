@@ -177,7 +177,7 @@ class Trainer():
 				s = self.prepare_static_sample(s)
 			else:
 				s = self.prepare_sample(s)  #将稀疏矩阵转为稠密矩阵，用来计算
-			print(self.rank,': prepare sample complete!')
+			print(self.rank,': prepare sample complete!', set_name)
 			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
 												   s.label_sp,              # s.label_sp['idx] 训练节点序号
