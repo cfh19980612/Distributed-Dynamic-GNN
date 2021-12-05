@@ -74,12 +74,12 @@ class EGCN(torch.nn.Module):
 
             if layer == 0 and self.partition == 'feature':
                 for i in range (len(Nodes_list)):
-                    tensor = torch.arange(2, dtype=torch.int64) + 1 + 2 * self.rank
+                    tensorA = torch.arange(2, dtype=torch.int64) + 1 + 2 * self.rank
                     node_embedding = Nodes_list[i]
-                    tensor.cuda(self.rank)
-                    dist.all_reduce(tensor, op=ReduceOp.SUM)
+                    tensorA.cuda(self.rank)
+                    dist.all_reduce(tensorA, op=ReduceOp.SUM)
                     # node_embedding.wait()
-                    print(tensor)
+                    print(tensorA)
                     # Nodes_list[i] = node_embedding
                     # print(node_embedding)
 
