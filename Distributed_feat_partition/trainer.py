@@ -106,7 +106,7 @@ class Trainer():
 			train_data_load.append(s)
 		time_data_end = time.time()
 		# print(len(train_data_load))
-		print('[{},{}] | Training data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
+		print('[{},{}] | Training data {} load end with cost: {}'.format(os.getpid(), self.rank, len(train_data_load), time_data_end - time_data_start))
 
 		# generate the test dataload
 		test_data_load = []
