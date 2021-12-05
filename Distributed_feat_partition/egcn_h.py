@@ -77,7 +77,7 @@ class EGCN(torch.nn.Module):
                     print(i)
                     node_embedding = Nodes_list[i]
 
-                    dist.all_reduce(node_embedding, op=ReduceOp.SUM)
+                    dist.all_reduce(node_embedding, op=ReduceOp.SUM, async_op=True)
                     # node_embedding.wait()
                     Nodes_list[i] = node_embedding
                     # print(node_embedding)
