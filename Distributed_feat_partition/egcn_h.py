@@ -22,10 +22,23 @@ from torch.distributed import ReduceOp
 '''
 
 PARAMETER_DICT = {}
-
+DIST_DEFAULT_BACKEND = 'nccl'
+DIST_DEFAULT_ADDR = 'localhost'
+DIST_DEFAULT_PORT = '12341'
+DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
+DIST_DEFAULT_WORLD_SIZE = 1
 class EGCN(torch.nn.Module):
     def __init__(self, args, partition, tasker, rank, world_size, remote_module, activation, device='cpu', skipfeats=False):
         super(EGCN,self).__init__()
+
+        # initialize the DDP group
+        dist.init_process_group(
+            backend=DIST_DEFAULT_BACKEND,
+            init_method=DIST_DEFAULT_INIT_METHOD,
+            world_size=DIST_DEFAULT_WORLD_SIZE,
+            rank=rank
+        )
+
         GRCU_args = u.Namespace({})  #将字典的索引改为 dict['key'] -> dict.key
         # print('feat_per_node,',tasker.feats_per_node)
         # if feature partition

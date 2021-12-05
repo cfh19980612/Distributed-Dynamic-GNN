@@ -187,8 +187,10 @@ class Trainer():
 			labels = []
 			for time in range (len(s.hist_adj_list)):
 				labels.append(s.label_sp[time]['vals'])
-			predictions = torch.cat(predictions, dim=0)
-			labels = torch.cat(labels, dim=0)
+			# predictions = torch.cat(predictions, dim=0)
+			# labels = torch.cat(labels, dim=0)
+			predictions = predictions[0]
+			labels = labels[0]
 			loss = self.comp_loss(predictions,labels)
 			Loss.append(loss)
 			print(self.rank,': compute loss complete!')
@@ -258,8 +260,6 @@ class Trainer():
 			print(self.rank,': compute gradients! Time costs:', time_end - time_start)
 			self.gcn_opt.step()
 			self.classifier_opt.step()
-
-
 
 	def prepare_sample(self,sample):
 		sample = u.Namespace(sample)
