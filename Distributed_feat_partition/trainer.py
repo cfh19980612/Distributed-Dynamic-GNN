@@ -171,7 +171,7 @@ class Trainer():
 	def run_epoch(self, split, epoch, set_name, grad):
 		Loss = []
 		torch.set_grad_enabled(grad)
-		loss_test = 0
+
 		for s in split:  # 一次一个训练样本，每个训练样本（某一时刻的图）会生成一个时序图，s为时序图
 			if self.tasker.is_static:
 				s = self.prepare_static_sample(s)

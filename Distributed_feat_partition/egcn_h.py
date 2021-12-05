@@ -74,9 +74,9 @@ class EGCN(torch.nn.Module):
 
             if layer == 0 and self.partition == 'feature':
                 for i in range (len(Nodes_list)):
-                    group_nccl = dist.new_group(backend="nccl")
                     node_embedding = Nodes_list[i]
-                    dist.all_reduce(node_embedding, op=ReduceOp.SUM, group=group_nccl)
+                    dist.all_reduce(node_embedding, op=ReduceOp.SUM)
+                    torch.cuda.synchronize(device=self.rank)
                     # node_embedding.wait()
                     Nodes_list[i] = node_embedding
                     # print(node_embedding)
