@@ -50,7 +50,7 @@ DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
 DIST_DEFAULT_PORT = '12347'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
-DIST_DEFAULT_WORLD_SIZE = 2
+DIST_DEFAULT_WORLD_SIZE = 1
 
 GCN = [None for i in range (DIST_DEFAULT_WORLD_SIZE)]
 Remote_Module = [None for i in range (DIST_DEFAULT_WORLD_SIZE - 1)]
@@ -251,58 +251,14 @@ def worker(rank, args, dataset):
 				rank = rank)
 		trainer.train()
 
-
 # 定义分布式启动模块
 def main(args):
-
-	# # define the master process
-	# rpc_backend_options_master = TensorPipeRpcBackendOptions()
-	# rpc_backend_options_master.init_method = "tcp://localhost:12346"
-	# rpc.init_rpc(
-	# 	'master',
-	# 	rank = 0,
-	# 	world_size=1,
-	# 	rpc_backend_options=rpc_backend_options_master,
-	# )
-	# print('rpc complete')
 	tic = time.time()
 
 	# build dataset
 	dataset = build_dataset(args)
 	dataset.max_time = dataset.max_time - 40
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
-	# build task
-
-	# build gcn and remote module
-	# GCN = [None for i in range (DIST_DEFAULT_WORLD_SIZE)]
-	# Remote_Module = [None for i in range (DIST_DEFAULT_WORLD_SIZE - 1)] # the last trainer has no remote output
-	# for rank in range (DIST_DEFAULT_WORLD_SIZE):
-	# 	trainer_name = 'trainer{}'.format(rank)
-
-		# if rank == 0: # the first trainer
-		# 	# build gcn
-		# 	GCN[rank] = build_gcn(args, tasker, rank)
-		# 	# build remote module output
-		# 	Remote_Module[rank] = RemoteModule(
-		# 					trainer_name,
-		# 					RNN_Send_Module,
-		# 					args=(GCN[rank]),
-		# 					)
-
-		# elif DIST_DEFAULT_WORLD_SIZE > 1 and rank == DIST_DEFAULT_WORLD_SIZE -1:  # the final trainer has no remote module output
-		# 	# build gcn
-		# 	GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
-
-		# else:
-		# 	# build gcn
-		# 	GCN[rank] = build_gcn(args, tasker, rank, remote_module=Remote_Module[rank - 1])
-		# 	# build remote module output
-		# 	Remote_Module[rank] = RemoteModule(
-		# 					trainer_name,
-		# 					RNN_Send_Module,
-		# 					args=(GCN[rank]),
-		# 					kwargs=None,
-		# 					)
 
 	if args.distributed:
 		mp.spawn(worker,
