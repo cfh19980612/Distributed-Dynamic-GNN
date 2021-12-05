@@ -210,10 +210,11 @@ class Trainer():
 				precision, recall, f1, acc = self.compute_acc(predictions, labels)
 
 		# average training loss
-		loss = sum(Loss)
-		if grad:
-			self.optim_step(loss)
-		print('backward complete!')
+		if set_name == 'TRAIN':
+			loss = sum(Loss)
+			if grad:
+				self.optim_step(loss)
+			print('backward complete!')
 		torch.set_grad_enabled(True)
 		if set_name=='TEST':
 			return nodes_embs, precision, recall, f1, acc
