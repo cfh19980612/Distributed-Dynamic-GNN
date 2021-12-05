@@ -185,7 +185,7 @@ def worker(rank, args, dataset):
 	print('[{},{}] | Build task complete!'.format(os.getpid(), rank))
 	# build splitter, use the rankid to split the dataset
 	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)
-	print('[{},{}] | Trainer{} splitter complete!'.format(os.getpid(), rank))
+	print('[{},{}] | Data split complete!'.format(os.getpid(), rank))
 
 	if args.distributed:
 		# CPU or GPU
