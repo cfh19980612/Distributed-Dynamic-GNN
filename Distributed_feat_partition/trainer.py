@@ -272,7 +272,7 @@ class Trainer():
 			# print(nodes)
 			# if feature partition
 			if self.args.partition == 'feature':
-				nodes = nodes.to_dense()
+				nodes = nodes.to_dense()  # to dense matrix
 				if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
 					nodes = nodes[:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
 				else:

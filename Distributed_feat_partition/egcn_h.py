@@ -74,12 +74,13 @@ class EGCN(torch.nn.Module):
 
             if layer == 0 and self.partition == 'feature':
                 for i in range (len(Nodes_list)):
-                    # print(i)
+                    print(i)
                     node_embedding = Nodes_list[i]
                     dist.all_reduce(node_embedding, op=ReduceOp.SUM)
                     # node_embedding.wait()
                     Nodes_list[i] = node_embedding
                     # print(node_embedding)
+
             self.GCN_list.append(gcn_weights[-1])
 
             # 在用snapshot partition时，需要将每一层的输出结果都保存，不能覆盖，因为每一层RNN都要通讯
