@@ -187,22 +187,11 @@ class Trainer():
 			labels = []
 			for time in range (len(s.hist_adj_list)):
 				labels.append(s.label_sp[time]['vals'])
-			for i in range (len(predictions)):
-				loss = self.comp_loss(predictions[i],labels[i])
-				if set_name == 'TRAIN':
-					# loss = sum(Loss)
-					if grad:
-						self.optim_step(loss)
-			print(self.rank,': backward complete!')
-			# predictions = torch.cat(predictions, dim=0)
-			# labels = torch.cat(labels, dim=0)
-			# loss = self.comp_loss(predictions,labels)
-			# if grad:
-			# 	self.optim_step(loss)
-
+			predictions = torch.cat(predictions, dim=0)
+			labels = torch.cat(labels, dim=0)
+			loss = self.comp_loss(predictions,labels)
 			Loss.append(loss)
-			loss_test = loss
-
+			print(self.rank,': compute loss complete!')
 			# release the GPU
 			# for i, adj in enumerate(s.hist_adj_list):
 			# 	s.hist_adj_list[i].to('cpu')
@@ -217,11 +206,12 @@ class Trainer():
 				precision, recall, f1, acc = self.compute_acc(predictions, labels)
 
 		# average training loss
-		# if set_name == 'TRAIN':
-		# 	loss = sum(Loss)
-		# 	if grad:
-		# 		self.optim_step(loss)
-		# 	print(self.rank,': backward complete!')
+		if set_name == 'TRAIN':
+			loss = sum(Loss)
+			if grad:
+				self.optim_step(loss)
+			print(self.rank,': backward complete!')
+
 		torch.set_grad_enabled(True)
 		if set_name=='TEST':
 			return nodes_embs, precision, recall, f1, acc
