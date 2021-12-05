@@ -189,7 +189,7 @@ class Trainer():
 				labels.append(s.label_sp[time]['vals'])
 			# predictions = torch.cat(predictions, dim=0)
 			# labels = torch.cat(labels, dim=0)
-			predictions = predictions[len(labels) - 1]
+			# predictions = predictions[len(labels) - 1]
 			labels = labels[len(labels) - 1]
 			loss = self.comp_loss(predictions,labels)
 			Loss.append(loss)
@@ -208,10 +208,9 @@ class Trainer():
 				precision, recall, f1, acc = self.compute_acc(predictions, labels)
 
 		# average training loss
-		if set_name == 'TRAIN':
-			loss = sum(Loss)
-			if grad:
-				self.optim_step(loss)
+		loss = sum(Loss)
+		if grad:
+			self.optim_step(loss)
 			# print(self.rank,': backward complete!')
 
 		torch.set_grad_enabled(True)
