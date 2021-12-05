@@ -146,7 +146,7 @@ class Trainer():
 				_, precision, recall, f1, acc = self.run_epoch(test_data, e, 'TEST', grad = False)
 
 				if self.args.distributed and self.rank == 0:
-					print("[{},{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}, acc: {}, time cost: {}".format(
+					print("[{},{}] | Epoch:{} ended {}/{} at {} on {} | loss: {:.4f} precision: {:.4f} recall: {:.4f}, f1: {:.4f}, acc: {:.4f}, time cost: {:.4f}".format(
 						os.getpid(), self.rank, e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, loss,
 						precision, recall, f1, acc, train_epoch_time_end - train_epoch_time_start))
 				else:
@@ -156,17 +156,17 @@ class Trainer():
 				Precision.append(precision)
 				Recall.append(recall)
 				F1.append(f1)
-				if self.args.save_node_embeddings:
-					self.save_node_embs_csv(nodes_embs, self.splitter.train_idx, log_file+'_train_nodeembs.csv.gz')
-					self.save_node_embs_csv(nodes_embs, self.splitter.dev_idx, log_file+'_valid_nodeembs.csv.gz')
-					self.save_node_embs_csv(nodes_embs, self.splitter.test_idx, log_file+'_test_nodeembs.csv.gz')
+		# 		if self.args.save_node_embeddings:
+		# 			self.save_node_embs_csv(nodes_embs, self.splitter.train_idx, log_file+'_train_nodeembs.csv.gz')
+		# 			self.save_node_embs_csv(nodes_embs, self.splitter.dev_idx, log_file+'_valid_nodeembs.csv.gz')
+		# 			self.save_node_embs_csv(nodes_embs, self.splitter.test_idx, log_file+'_test_nodeembs.csv.gz')
 
-		dataframe = pd.DataFrame(time_spend, columns=['X'])
-		dataframe = pd.concat([dataframe, pd.DataFrame(Loss,columns=['Y'])],axis=1)
-		dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
-		dataframe = pd.concat([dataframe, pd.DataFrame(Recall,columns=['P'])],axis=1)
-		dataframe = pd.concat([dataframe, pd.DataFrame(F1,columns=['Q'])],axis=1)
-		dataframe.to_csv(f"../result/{self.args.partition}_{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
+		# dataframe = pd.DataFrame(time_spend, columns=['X'])
+		# dataframe = pd.concat([dataframe, pd.DataFrame(Loss,columns=['Y'])],axis=1)
+		# dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
+		# dataframe = pd.concat([dataframe, pd.DataFrame(Recall,columns=['P'])],axis=1)
+		# dataframe = pd.concat([dataframe, pd.DataFrame(F1,columns=['Q'])],axis=1)
+		# dataframe.to_csv(f"../result/{self.args.partition}_{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
 
 	def run_epoch(self, split, epoch, set_name, grad):
 		Loss = []
@@ -177,12 +177,12 @@ class Trainer():
 				s = self.prepare_static_sample(s)
 			else:
 				s = self.prepare_sample(s)  #将稀疏矩阵转为稠密矩阵，用来计算
-			print(self.rank,': prepare sample complete!', set_name)
+			# print(self.rank,': prepare sample complete!', set_name)
 			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
 												   s.label_sp,              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
-			print(self.rank,': forward complete!')
+			# print(self.rank,': forward complete!')
 			# back proporgation
 			labels = []
 			for time in range (len(s.hist_adj_list)):
@@ -193,7 +193,7 @@ class Trainer():
 			labels = labels[len(labels) - 1]
 			loss = self.comp_loss(predictions,labels)
 			Loss.append(loss)
-			print(self.rank,': compute loss complete!')
+			# print(self.rank,': compute loss complete!')
 			# release the GPU
 			# for i, adj in enumerate(s.hist_adj_list):
 			# 	s.hist_adj_list[i].to('cpu')
@@ -212,7 +212,7 @@ class Trainer():
 			loss = sum(Loss)
 			if grad:
 				self.optim_step(loss)
-			print(self.rank,': backward complete!')
+			# print(self.rank,': backward complete!')
 
 		torch.set_grad_enabled(True)
 		if set_name=='TEST':
@@ -254,10 +254,9 @@ class Trainer():
 			self.gcn_opt.zero_grad()
 			self.classifier_opt.zero_grad()
 			time_start = time.time()
-			print(loss.device)
 			loss.backward()
 			time_end = time.time()
-			print(self.rank,': compute gradients! Time costs:', time_end - time_start)
+			# print(self.rank,': compute gradients! Time costs:', time_end - time_start)
 			self.gcn_opt.step()
 			self.classifier_opt.step()
 
