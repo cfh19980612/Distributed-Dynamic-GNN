@@ -74,10 +74,9 @@ class EGCN(torch.nn.Module):
 
             if layer == 0 and self.partition == 'feature':
                 for i in range (len(Nodes_list)):
-                    print(i)
-                    node_embedding = Nodes_list[i]
 
-                    dist.all_reduce(node_embedding, op=ReduceOp.SUM, async_op=True)
+                    node_embedding = Nodes_list[i]
+                    dist.all_reduce(node_embedding, op=ReduceOp.SUM)
                     # node_embedding.wait()
                     Nodes_list[i] = node_embedding
                     # print(node_embedding)
