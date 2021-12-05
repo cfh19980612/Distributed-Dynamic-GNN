@@ -192,7 +192,7 @@ class Classifier(torch.nn.Module):
             num_feats = args.gcn_parameters['lstm_l2_feats'] * 2
         else:
             num_feats = args.gcn_parameters['layer_2_feats'] * 2
-        print ('CLS num_feats',num_feats)
+        # print ('CLS num_feats',num_feats)
 
         # self.mlp = torch.nn.Sequential(torch.nn.Linear(in_features = num_feats,
         #                                                out_features =args.gcn_parameters['cls_feats']),

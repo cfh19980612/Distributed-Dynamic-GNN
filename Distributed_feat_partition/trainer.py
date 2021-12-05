@@ -106,16 +106,16 @@ class Trainer():
 			train_data_load.append(s)
 		time_data_end = time.time()
 		# print(len(train_data_load))
-		print('[{},{}] |Training data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
+		print('[{},{}] | Training data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
 
 		# generate the test dataload
 		test_data_load = []
 		time_data_start = time.time()
-		print('[{},{}] |Test data load start!'.format(os.getpid(), self.rank))
+		print('[{},{}] | Test data load start!'.format(os.getpid(), self.rank))
 		for s in self.splitter.test:
 			test_data_load.append(s)
 		time_data_end = time.time()
-		print('[{},{}] |Test data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
+		print('[{},{}] | Test data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
 
 		for e in range(self.args.num_epochs):
 			train_data = iter(copy.deepcopy(train_data_load))  # 使用深拷贝防止数据集处理时被修改

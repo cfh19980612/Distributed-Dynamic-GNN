@@ -182,10 +182,10 @@ class RNN_Send_Module(nn.Module):
 
 def worker(rank, args, dataset):
 	tasker = build_tasker(args, dataset, rank)
-	print('tasker complete!', tasker.feats_per_node)
+	print('[{},{}] | Build task complete!'.format(os.getpid(), rank))
 	# build splitter, use the rankid to split the dataset
 	splitter = sp.splitter(args, tasker, DIST_DEFAULT_WORLD_SIZE, rank)
-	print('Trainer{} splitter complete!'.format(rank))
+	print('[{},{}] | Trainer{} splitter complete!'.format(os.getpid(), rank))
 
 	if args.distributed:
 		# CPU or GPU
@@ -193,7 +193,7 @@ def worker(rank, args, dataset):
 		args.use_cuda = (torch.cuda.is_available() and args.use_cuda)
 		if args.use_cuda:
 			args.device='cuda'
-			print('Trainer{} uses CUDA: {}, - device: {}'.format(rank, args.use_cuda, args.device))
+			print('[{},{}] | Uses CUDA: {}, - device: {}'.format(os.getpid(), rank, args.use_cuda, args.device))
 
 		# initialize the DDP group
 		dist.init_process_group(
@@ -259,7 +259,7 @@ def main(args):
 	dataset = build_dataset(args)
 	dataset.max_time = dataset.max_time
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
-
+	print('[P,Rank] | Info')
 	if args.distributed:
 		mp.spawn(worker,
 					args=(args, dataset),
