@@ -106,7 +106,7 @@ class Trainer():
 			train_data_load.append(s)
 		time_data_end = time.time()
 		# print(len(train_data_load))
-		print('[{},{}] | Training data {} load end with cost: {}'.format(os.getpid(), self.rank, len(train_data_load), time_data_end - time_data_start))
+		print('[{},{}] | Training data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
 
 		# generate the test dataload
 		test_data_load = []
@@ -141,11 +141,11 @@ class Trainer():
 			# 			break
 			assert len(self.splitter.test)>0, \
                 'there\'s no test samples'
-			if len(self.splitter.test)>0 and e>=self.args.eval_after_epochs-1 and self.rank == 0:
+			if len(self.splitter.test)>0 and e>=self.args.eval_after_epochs-1:
 				test_data = iter(copy.deepcopy(test_data_load))
 				_, precision, recall, f1, acc = self.run_epoch(test_data, e, 'TEST', grad = False)
 
-				if self.args.distributed:
+				if self.args.distributed and self.rank == 0:
 					print("[{},{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}, acc: {}, time cost: {}".format(
 						os.getpid(), self.rank, e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, loss,
 						precision, recall, f1, acc, train_epoch_time_end - train_epoch_time_start))
