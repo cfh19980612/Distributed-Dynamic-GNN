@@ -252,6 +252,7 @@ class Trainer():
 			self.gcn_opt.zero_grad()
 			self.classifier_opt.zero_grad()
 			time_start = time.time()
+			print(loss.device)
 			loss.backward()
 			time_end = time.time()
 			print(self.rank,': compute gradients! Time costs:', time_end - time_start)
