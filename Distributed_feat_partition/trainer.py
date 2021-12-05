@@ -251,7 +251,10 @@ class Trainer():
 		if self.tr_step % self.args.steps_accum_gradients == 0:
 			self.gcn_opt.zero_grad()
 			self.classifier_opt.zero_grad()
+			time_start = time.time()
 			loss.backward()
+			time_end = time.time()
+			print(self.rank,': compute gradients! Time costs:', time_end - time_start)
 			self.gcn_opt.step()
 			self.classifier_opt.step()
 
