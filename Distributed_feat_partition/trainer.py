@@ -204,7 +204,7 @@ class Trainer():
 			# s.label_sp['vals'].cpu()
 
 			# 测试集上计算precision，recall和f1
-			if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred' and self.rank == 0:
+			if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred':
 				precision, recall, f1, acc = self.compute_acc(predictions, labels)
 
 		# average training loss
