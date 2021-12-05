@@ -149,8 +149,8 @@ class Trainer():
 					print("[{},{}] | Epoch:{} ended {}/{} at {} on {} | loss: {:.4f} precision: {:.4f} recall: {:.4f}, f1: {:.4f}, acc: {:.4f}, time cost: {:.4f}".format(
 						os.getpid(), self.rank, e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, loss,
 						precision, recall, f1, acc, train_epoch_time_end - train_epoch_time_start))
-				else:
-					print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
+				# else:
+				# 	print(f"[{os.getpid()}] Epoch-{e} ended on {self.device}")
 
 				# save the output
 				Precision.append(precision)
