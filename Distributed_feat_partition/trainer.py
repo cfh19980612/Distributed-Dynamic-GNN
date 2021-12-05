@@ -182,7 +182,7 @@ class Trainer():
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
 												   s.label_sp,              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
-
+			print('forward complete!')
 			# back proporgation
 			labels = []
 			for time in range (len(s.hist_adj_list)):
@@ -190,6 +190,7 @@ class Trainer():
 			predictions = torch.cat(predictions, dim=0)
 			labels = torch.cat(labels, dim=0)
 			loss = self.comp_loss(predictions,labels)
+			print('compute loss complete!')
 			# if grad:
 			# 	self.optim_step(loss)
 			Loss.append(loss)
@@ -212,6 +213,7 @@ class Trainer():
 		loss = sum(Loss)
 		if grad:
 			self.optim_step(loss)
+		print('backward complete!')
 		torch.set_grad_enabled(True)
 		if set_name=='TEST':
 			return nodes_embs, precision, recall, f1, acc
@@ -277,7 +279,6 @@ class Trainer():
 					nodes = nodes[:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
 				else:
 					nodes = nodes[:,self.rank*self.feature_per_node:]
-
 
 			sample.hist_ndFeats_list[i] = nodes.to(self.device)
 			# print(sample.hist_ndFeats_list[i])
