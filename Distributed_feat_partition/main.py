@@ -257,7 +257,7 @@ def main(args):
 
 	# build dataset
 	dataset = build_dataset(args)
-	dataset.max_time = dataset.max_time
+	dataset.max_time = dataset.max_time - 40
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
 	print('[P,Rank] | Info')
 	if args.distributed:
