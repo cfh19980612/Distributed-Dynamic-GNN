@@ -195,13 +195,13 @@ def worker(rank, args, dataset):
 			args.device='cuda'
 			print('[{},{}] | Uses CUDA: {}, - device: {}'.format(os.getpid(), rank, args.use_cuda, args.device))
 
-		# # initialize the DDP group
-		# dist.init_process_group(
-		# 	backend=DIST_DEFAULT_BACKEND,
-		# 	init_method=DIST_DEFAULT_INIT_METHOD,
-		# 	world_size=DIST_DEFAULT_WORLD_SIZE,
-		# 	rank=rank
-		# )
+		# initialize the DDP group
+		dist.init_process_group(
+			backend=DIST_DEFAULT_BACKEND,
+			init_method=DIST_DEFAULT_INIT_METHOD,
+			world_size=DIST_DEFAULT_WORLD_SIZE,
+			rank=rank
+		)
 		# print('rank',Remote_Module)
 		GCN[rank] = build_gcn(args, tasker, rank)
 
