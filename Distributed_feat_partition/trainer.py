@@ -44,7 +44,8 @@ class Trainer():
 			if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
 				self.feature_per_node = self.tasker.feats_per_node//self.DIST_DEFAULT_WORLD_SIZE
 			else:
-				self.feature_per_node = self.tasker.feats_per_node // self.DIST_DEFAULT_WORLD_SIZE + self.tasker.feats_per_node%self.DIST_DEFAULT_WORLD_SIZE
+				# self.feature_per_node = self.tasker.feats_per_node // self.DIST_DEFAULT_WORLD_SIZE + self.tasker.feats_per_node%self.DIST_DEFAULT_WORLD_SIZE
+				self.feature_per_node = self.tasker.feats_per_node // self.DIST_DEFAULT_WORLD_SIZE
 
 	def init_optimizers(self,args):
 		# gcn网络优化器，即example中的EGCN网络
@@ -307,7 +308,8 @@ class Trainer():
 				if self.rank != self.DIST_DEFAULT_WORLD_SIZE - 1:
 					nodes = nodes[:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
 				else:
-					nodes = nodes[:,self.rank*self.feature_per_node:]
+					nodes = nodes[:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
+					
 
 			sample.hist_ndFeats_list[i] = nodes.to(self.device)
 			# print(sample.hist_ndFeats_list[i])

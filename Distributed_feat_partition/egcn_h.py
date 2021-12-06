@@ -35,7 +35,8 @@ class EGCN(torch.nn.Module):
             if rank != world_size - 1:
                 feats_per_node = tasker.feats_per_node // world_size
             else:
-                feats_per_node = tasker.feats_per_node // world_size + tasker.feats_per_node%world_size
+                # feats_per_node = tasker.feats_per_node // world_size + tasker.feats_per_node%world_size
+                feats_per_node = tasker.feats_per_node // world_size
 
         feats = [feats_per_node,
                  args.layer_1_feats,
