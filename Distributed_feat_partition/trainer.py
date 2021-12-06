@@ -180,7 +180,7 @@ class Trainer():
 			# print(self.rank,': prepare sample complete!', set_name)
 			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
-												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
+												   s.label_sp,              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
 			# print(self.rank,': forward complete!')
 			# back proporgation
