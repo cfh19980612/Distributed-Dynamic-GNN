@@ -192,7 +192,7 @@ class Trainer():
 			labels = torch.cat(labels, dim=0)
 			# predictions = predictions[len(labels) - 1]
 			# labels = labels[len(labels) - 1]
-			print(len(predictions))
+			# print(len(predictions))
 			loss = self.comp_loss(predictions,labels)
 
 			# loss = self.comp_loss(predictions,s.label_sp[-1]['vals'])
