@@ -198,7 +198,7 @@ class Trainer():
 			labels = torch.cat(labels, dim=0)
 			# predictions = predictions[len(labels) - 1]
 			# labels = labels[len(labels) - 1]
-			print(len(predictions))
+			# print(len(predictions))
 			loss = self.comp_loss(predictions,labels)
 
 			# loss = self.comp_loss(predictions,s.label_sp[-1]['vals'])
@@ -216,7 +216,7 @@ class Trainer():
 
 			# 测试集上计算precision，recall和f1
 			if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred':
-				precision, recall, f1, acc = self.compute_acc(predictions, s.label_sp[-1]['vals'])
+				precision, recall, f1, acc = self.compute_acc(predictions, labels)
 
 		# average training loss
 		loss = sum(Loss)
