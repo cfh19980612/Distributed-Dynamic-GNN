@@ -61,7 +61,7 @@ class EGCN(torch.nn.Module):
 
             self.GRCU_layers.append(GRCU(GRCU_args, i))
             # self.GCN_init_weights.append(Parameter(torch.Tensor(feats[i-1],feats[i])).cuda(rank))
-            self.reset_param(self.GCN_init_weights[i-1])
+            # self.reset_param(self.GCN_init_weights[i-1])
 
     # A_list: 所有时刻（训练样本所在时刻以及前num_hist_step时刻）的图拉普拉斯矩阵； Node_list:上一层所有时刻节点的特征； node_mask_list:
     def forward(self,gcn_init,A_list, Nodes_list, nodes_mask_list):
