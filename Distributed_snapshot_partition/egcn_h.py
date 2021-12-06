@@ -45,7 +45,7 @@ class EGCN(torch.nn.Module):
         self.rank = rank
         self.skipfeats = skipfeats
         self.GRCU_layers = nn.ModuleList()
-        self.GCN_init_weights = []
+        # self.GCN_init_weights = []
         self.remote_module = remote_module
         self.device = device
         self.partition = partition
@@ -61,23 +61,25 @@ class EGCN(torch.nn.Module):
                                      'activation': activation})
 
             self.GRCU_layers.append(GRCU(GRCU_args, i))
-            self.GCN_init_weights.append(Parameter(torch.Tensor(feats[i-1],feats[i])).cuda(rank))
-            self.reset_param(self.GCN_init_weights[i-1])
+            # self.GCN_init_weights.append(Parameter(torch.Tensor(feats[i-1],feats[i])).cuda(rank))
+            # self.reset_param(self.GCN_init_weights[i-1])
 
     # A_list: 所有时刻（训练样本所在时刻以及前num_hist_step时刻）的图拉普拉斯矩阵； Node_list:上一层所有时刻节点的特征； node_mask_list:
-    def forward(self,A_list, Nodes_list, nodes_mask_list):
+    def forward(self,gcn_init,A_list, Nodes_list, nodes_mask_list):
 
         node_feats= Nodes_list[-1] # Node_list（hist_ndFeat_list）存储每一时刻节点的输出embedding，-1表示最新（上一）时刻的节点输出embedding
 
         for (layer, unit) in enumerate(self.GRCU_layers):
             # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
-            gcn_weights = self.GCN_init_weights[layer]
+            # gcn_weights = self.GCN_init_weights[layer]
+
+
             # snapshot partition, each client exchange the RNN output: receive from the previous client
             if self.partition == 'snapshot':
                 if self.rank > 0:
                     dist.recv(tensor=gcn_weights, src=self.rank - 1)
                 else:
-                    pass
+                    gcn_weights = gcn_init.out_paras(layer)
 
             gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = gcn_weights)
 
@@ -99,7 +101,7 @@ class EGCN(torch.nn.Module):
             # print(self.rank,': reduce complete!')
             self.GCN_list.append(gcn_weights[-1])
 
-            # 在用snapshot partition时，需要将每一层的输出结果都保存，不能覆盖，因为每一层RNN都要通讯
+        # 在用snapshot partition时，需要将每一层的输出结果都保存，不能覆盖，因为每一层RNN都要通讯
         out = Nodes_list[-1]  # 返回最后一时刻的图节点的最后一层embedding输出
         if self.skipfeats:  # ？？？？
             out = torch.cat((out,node_feats), dim=1)   # use node_feats.to_dense() if 2hot encoded input

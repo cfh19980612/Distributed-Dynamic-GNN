@@ -6,7 +6,6 @@ import numpy as np
 import os
 import copy
 
-from log import logger
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
@@ -16,12 +15,13 @@ from sklearn.metrics import f1_score
 import torch.nn.functional as F
 
 class Trainer():
-	def __init__(self,args, splitter, gcn, classifier, comp_loss, dataset, num_classes, device, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD, rank):
+	def __init__(self,args, splitter, gcn, classifier, gcn_init, comp_loss, dataset, num_classes, device, DIST_DEFAULT_WORLD_SIZE, DIST_DEFAULT_INIT_METHOD, rank):
 		self.args = args
 		self.splitter = splitter  # 数据集类，包含训练集，验证集和测试集
 		self.tasker = splitter.tasker  # 为训练集中的样本生成动态图属性列表，包含时序邻接矩阵列表，时序点特征列表等，生成的矩阵都为稀疏矩阵（字典），作为输入之前需要转为稠密矩阵
 		self.gcn = gcn  # 模型
 		self.classifier = classifier  # 分类器
+		self.gcn_init = gcn_init
 		# self.gcn_fp = gcn_fp  # 拆分的GCN
 		self.comp_loss = comp_loss  # loss函数
 
@@ -29,17 +29,13 @@ class Trainer():
 		self.data = dataset  # 完整数据集（无调用）
 		self.num_classes = num_classes  # 总类别数
 
-		# self.logger = logger.Logger(args, self.num_classes)
-
-		self.init_optimizers(args)  #初始化优化器
-
-		self.valid_measure = u.Measure(num_classes=num_classes, target_class=1)
-		self.test_measure = u.Measure(num_classes=num_classes, target_class=1)
-
 		self.device = device
 		self.DIST_DEFAULT_WORLD_SIZE = DIST_DEFAULT_WORLD_SIZE
 		self.DIST_DEFAULT_INIT_METHOD = DIST_DEFAULT_INIT_METHOD
 		self.rank = rank
+
+		self.init_optimizers(args)  #初始化优化器
+
 		if self.tasker.is_static:
 			adj_matrix = u.sparse_prepare_tensor(self.tasker.adj_matrix, torch_size = [self.num_nodes], ignore_batch_dim = False)
 			self.hist_adj_list = [adj_matrix]
@@ -49,6 +45,7 @@ class Trainer():
 				self.feature_per_node = self.tasker.feats_per_node//self.DIST_DEFAULT_WORLD_SIZE
 			else:
 				self.feature_per_node = self.tasker.feats_per_node // self.DIST_DEFAULT_WORLD_SIZE + self.tasker.feats_per_node%self.DIST_DEFAULT_WORLD_SIZE
+
 	def init_optimizers(self,args):
 		# gcn网络优化器，即example中的EGCN网络
 		params = self.gcn.parameters()
@@ -59,6 +56,14 @@ class Trainer():
 		params = self.classifier.parameters()
 		self.classifier_opt = torch.optim.Adam(params, lr = args.learning_rate)
 		self.classifier_opt.zero_grad()
+
+		# 初始化gcn参数的优化器，在时序拆分中，只有一个client拥有初始化的GCN权重，后续的GCN参数均由网络生成
+		if self.rank == 0:
+			params = self.gcn_init.parameters()
+			# for para in params:
+			# 	print('parameters:',para)
+			self.gcn_init_opt = torch.optim.Adam(params, lr = args.learning_rate)
+			self.gcn_init_opt.zero_grad
 
 		# if self.args.partition == 'feature':  # feature partition
 		# 	params = self.gcn_fp.parameters()
@@ -178,7 +183,8 @@ class Trainer():
 			else:
 				s = self.prepare_sample(s)  #将稀疏矩阵转为稠密矩阵，用来计算
 			# print(self.rank,': prepare sample complete!', set_name)
-			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
+			predictions, nodes_embs = self.predict(self.gcn, self.gcn_init,
+												   s.hist_adj_list,                # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
 												   s.label_sp[-1]['idx'],              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
@@ -244,10 +250,11 @@ class Trainer():
 	# 		gather_prediction_list.append(torch.cat(gather_predictions, dim=0))
 	# 		# gather_prediction_list.append(gather_predictions)
 	# 	return gather_prediction_list, nodes_embs
-	def predict(self,gcn,hist_adj_list,hist_ndFeats_list,node_indices,mask_list):
+	def predict(self,gcn,gcn_init,hist_adj_list,hist_ndFeats_list,node_indices,mask_list):
 
 		# 返回最后一时刻的图节点embeddings
-		nodes_embs = gcn(hist_adj_list,
+		nodes_embs = gcn(gcn_init,
+							  hist_adj_list,
 							  hist_ndFeats_list,
 							  mask_list)
 
@@ -274,12 +281,16 @@ class Trainer():
 		if self.tr_step % self.args.steps_accum_gradients == 0:
 			self.gcn_opt.zero_grad()
 			self.classifier_opt.zero_grad()
+			if self.rank == 0:
+				self.gcn_init_opt.zero_grad()
 			time_start = time.time()
 			loss.backward()
 			time_end = time.time()
 			print(self.rank,': compute gradients! Time costs:', time_end - time_start)
 			self.gcn_opt.step()
 			self.classifier_opt.step()
+			if self.rank == 0:
+				self.gcn_init_opt.step()
 
 	def prepare_sample(self,sample):
 		sample = u.Namespace(sample)

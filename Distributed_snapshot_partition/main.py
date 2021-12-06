@@ -216,11 +216,13 @@ def worker(rank, args, dataset):
 		#build a loss
 		cross_entropy = ce.Cross_Entropy(args,dataset).to(GCN[rank].device)
 
+		gcn_init = mls.gcn(u.Namespace(args.gcn_parameters), tasker.feats_per_node).to(args.device)
 		# build the trainer
 		trainer = tr.Trainer(args,
 					splitter = splitter,
 					gcn = GCN[rank],
 					classifier = classifier,
+					gcn_init = gcn_init,
 					comp_loss = cross_entropy,
 					dataset = dataset,
 					num_classes = tasker.num_classes,
@@ -242,6 +244,7 @@ def worker(rank, args, dataset):
 				splitter = splitter,
 				gcn = gcn,
 				classifier = classifier,
+				gcn_init = gcn_init,
 				comp_loss = cross_entropy,
 				dataset = dataset,
 				num_classes = tasker.num_classes,
