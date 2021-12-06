@@ -71,6 +71,7 @@ class EGCN(torch.nn.Module):
 
         for (layer, unit) in enumerate(self.GRCU_layers):
             gcn_weights = gcn_init.out_paras(layer)
+            print('GCN input:,'gcn_weights.size())
             # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
             gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = gcn_weights)
 
@@ -144,6 +145,7 @@ class GRCU(torch.nn.Module):
             # print(node_embs)
             #first evolve the weights from the initial and use the new weights with the node_embs
             # print('before:',GCN_weights)
+            print('GCN:',GCN_weights.size())
             GCN_weights = self.evolve_weights(GCN_weights,node_embs,mask_list[t])  # GRU计算
             # print('after:',GCN_weights)
             node_embs = self.activation(Ahat.matmul(node_embs.matmul(GCN_weights)))  # GCN计算：A^XW
@@ -175,7 +177,7 @@ class mat_GRU_cell(torch.nn.Module):
 
     def forward(self,prev_Q,prev_Z,mask):  # 传入参数， prev_Q：上一时刻(t)GCN的参数； prev_Z：该时刻上一层的node_embedding; mask:该时刻的掩码
         z_topk = self.choose_topk(prev_Z,mask)
-
+        print(prev_Q.size())
         update = self.update(z_topk,prev_Q)  # update = sigmoid(V_z*H_t^l + U_z*W_t + B_z)
         reset = self.reset(z_topk,prev_Q)  # reset = sigmoid(V_r*H_t^l + U_r*W_t + B_r)
 
@@ -211,8 +213,6 @@ class mat_GRU_gate(torch.nn.Module):
         init.xavier_uniform_(t)
 
     def forward(self,x,hidden):  # x: 该时刻上一层（l）节点embedding的k列； hidden:上一时刻的GCN权重参数
-        print(x.size())
-        print(hidden.size())
         out = self.activation(self.W.matmul(x) + \
                               self.U.matmul(hidden) + \
                               self.bias)
