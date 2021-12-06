@@ -50,7 +50,7 @@ DIST_DEFAULT_BACKEND = 'nccl'
 DIST_DEFAULT_ADDR = 'localhost'
 DIST_DEFAULT_PORT = '12344'
 DIST_DEFAULT_INIT_METHOD = f'tcp://{DIST_DEFAULT_ADDR}:{DIST_DEFAULT_PORT}'
-DIST_DEFAULT_WORLD_SIZE = 2
+DIST_DEFAULT_WORLD_SIZE = 4
 
 GCN = [None for i in range (DIST_DEFAULT_WORLD_SIZE)]
 Remote_Module = [None for i in range (DIST_DEFAULT_WORLD_SIZE - 1)]
@@ -216,11 +216,14 @@ def worker(rank, args, dataset):
 		#build a loss
 		cross_entropy = ce.Cross_Entropy(args,dataset).to(GCN[rank].device)
 
+		gcn_init = mls.gcn(u.Namespace(args.gcn_parameters), tasker.feats_per_node).to(args.device)
+
 		# build the trainer
 		trainer = tr.Trainer(args,
 					splitter = splitter,
 					gcn = GCN[rank],
 					classifier = classifier,
+					gcn_init = gcn_init,
 					comp_loss = cross_entropy,
 					dataset = dataset,
 					num_classes = tasker.num_classes,

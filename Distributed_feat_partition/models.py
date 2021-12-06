@@ -172,12 +172,26 @@ class Sp_GCN_GRU_B(Sp_GCN_LSTM_B):
                 )
 
 class gcn(torch.nn.Module):
-    def __init__(self,in_feats,out_feats):
+    def __init__(self, args, in_feats):
         super(gcn,self).__init__()
-        self.w = Parameter(torch.Tensor(in_feats,out_feats))
-        self.reset_param(self.w)
+        hidden_feats = args.layer_1_feats
+        out_feats = args.layer_2_feats
+
+        # self.layer_1 = torch.nn.Linear(in_features = in_feats, out_features = hidden_feats)
+        # self.layer_2 = torch.nn.Linear(in_features = hidden_feats, out_features = out_feats)
+        self.layer_1 = Parameter(torch.Tensor(in_feats,hidden_feats))
+        self.layer_2 = Parameter(torch.Tensor(hidden_feats,out_feats))
+        self.reset_param(self.layer_1)
+        self.reset_param(self.layer_2)
+
     def reset_param(self,t):
         init.xavier_uniform_(t)
+
+    def out_paras(self,layer):
+        if layer == 0:
+            return self.layer_1
+        else:
+            return self.layer_2
 
 class Classifier(torch.nn.Module):
     def __init__(self,args,out_features=2, in_features = None):

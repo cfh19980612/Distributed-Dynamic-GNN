@@ -64,11 +64,12 @@ class EGCN(torch.nn.Module):
             self.reset_param(self.GCN_init_weights[i-1])
 
     # A_list: 所有时刻（训练样本所在时刻以及前num_hist_step时刻）的图拉普拉斯矩阵； Node_list:上一层所有时刻节点的特征； node_mask_list:
-    def forward(self,A_list, Nodes_list, nodes_mask_list):
+    def forward(self,gcn_init,A_list, Nodes_list, nodes_mask_list):
 
         node_feats= Nodes_list[-1] # Node_list（hist_ndFeat_list）存储每一时刻节点的输出embedding，-1表示最新（上一）时刻的节点输出embedding
 
         for (layer, unit) in enumerate(self.GRCU_layers):
+            gcn_weights = gcn_init.out_paras(layer)
             # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
             gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = self.GCN_init_weights[layer])
 
