@@ -216,7 +216,7 @@ def worker(rank, args, dataset):
 		#build a loss
 		cross_entropy = ce.Cross_Entropy(args,dataset).to(GCN[rank].device)
 
-		gcn_init = mls.gcn(u.Namespace(args.gcn_parameters), tasker.feats_per_node).to(args.device)
+		gcn_init = mls.gcn(u.Namespace(args.gcn_parameters), tasker.feats_per_node, DIST_DEFAULT_WORLD_SIZE).to(args.device)
 
 		# build the trainer
 		trainer = tr.Trainer(args,
@@ -260,7 +260,7 @@ def main(args):
 
 	# build dataset
 	dataset = build_dataset(args)
-	dataset.max_time = dataset.max_time
+	dataset.max_time = dataset.max_time - 40
 	print('dataset complete!', dataset.num_nodes, dataset.max_time)
 	print('partition method:{}!'.format(args.partition))
 	print('[P,Rank] | Info')

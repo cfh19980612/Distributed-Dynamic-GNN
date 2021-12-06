@@ -172,9 +172,9 @@ class Sp_GCN_GRU_B(Sp_GCN_LSTM_B):
                 )
 
 class gcn(torch.nn.Module):
-    def __init__(self, args, in_feats):
+    def __init__(self, args, in_feats, world_size):
         super(gcn,self).__init__()
-        hidden_feats = args.layer_1_feats
+        hidden_feats = args.layer_1_feats // world_size
         out_feats = args.layer_2_feats
 
         # self.layer_1 = torch.nn.Linear(in_features = in_feats, out_features = hidden_feats)
