@@ -157,6 +157,8 @@ class mat_GRU_cell(torch.nn.Module):
     def __init__(self,args,layer):  # 传入的参数为GCN权重参数的行和列，用来定义GRU的权重参数维度，因为GRU的输入为GCN的权重参数
         super(mat_GRU_cell,self).__init__()
         self.args = args
+        print('self dimension',self.args.rows, self.args.cols)
+        print('self dimension',args.rows, args.cols)
         # 实例化GRCU中GRU操作门:更新门，重置门，候选隐藏状态，以及K-top挑选
         self.update = mat_GRU_gate(args.rows,     # GRU更新门
                                    args.cols,
