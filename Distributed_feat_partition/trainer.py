@@ -180,22 +180,22 @@ class Trainer():
 			# print(self.rank,': prepare sample complete!', set_name)
 			predictions, nodes_embs = self.predict(self.gcn, s.hist_adj_list,      # s.hist_adj_list 存储时序图每个时刻下的邻接矩阵
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
-												   s.label_sp[-1]['idx'],              # s.label_sp['idx] 训练节点序号
+												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
 			# print(self.rank,': forward complete!')
 			# back proporgation
 
-			# labels = []
-			# for time in range (len(s.hist_adj_list)):
-			# 	labels.append(s.label_sp[time]['vals'])
+			labels = []
+			for time in range (len(s.hist_adj_list)):
+				labels.append(s.label_sp[time]['vals'])
 			# predictions = torch.cat(predictions, dim=0)
 			# labels = torch.cat(labels, dim=0)
-			# # predictions = predictions[len(labels) - 1]
-			# # labels = labels[len(labels) - 1]
-			# print(len(predictions))
-			# loss = self.comp_loss(predictions,labels)
+			predictions = predictions[len(labels) - 1]
+			labels = labels[len(labels) - 1]
+			print(len(predictions))
+			loss = self.comp_loss(predictions,labels)
 
-			loss = self.comp_loss(predictions,s.label_sp[-1]['vals'])
+			# loss = self.comp_loss(predictions,s.label_sp[-1]['vals'])
 
 			Loss.append(loss)
 			# print(self.rank,': compute loss complete!')
@@ -210,7 +210,7 @@ class Trainer():
 
 			# 测试集上计算precision，recall和f1
 			if set_name in ['TEST', 'VALID'] and self.args.task == 'link_pred':
-				precision, recall, f1, acc = self.compute_acc(predictions, s.label_sp[-1]['vals'])
+				precision, recall, f1, acc = self.compute_acc(predictions, labels)
 
 		# average training loss
 		loss = sum(Loss)
@@ -224,43 +224,43 @@ class Trainer():
 		else:
 			return loss, nodes_embs
 
-	# def predict(self,gcn,hist_adj_list,hist_ndFeats_list,label_sp,mask_list):
-	# 	gather_prediction_list = []
-	# 	# 返回最后一时刻的图节点embeddings
-	# 	nodes_embs = gcn(hist_adj_list,
-	# 						  hist_ndFeats_list,
-	# 						  mask_list)
-
-	# 	predict_batch_size = 128
-
-	# 	# print(nodes_embs,node_indices)
-	# 	for time in range (len(hist_adj_list)):
-	# 		gather_predictions=[]
-	# 		node_indices = label_sp[time]['idx']
-	# 		for i in range(1 +(node_indices.size(1)//predict_batch_size)):
-	# 			cls_input = self.gather_node_embs(nodes_embs[time], node_indices[:, i*predict_batch_size:(i+1)*predict_batch_size])  # 获取一个batch的边embedding
-	# 			predictions = self.classifier(cls_input)
-	# 			gather_predictions.append(predictions)
-	# 		gather_prediction_list.append(torch.cat(gather_predictions, dim=0))
-	# 		# gather_prediction_list.append(gather_predictions)
-	# 	return gather_prediction_list, nodes_embs
-	def predict(self,gcn,hist_adj_list,hist_ndFeats_list,node_indices,mask_list):
-
+	def predict(self,gcn,hist_adj_list,hist_ndFeats_list,label_sp,mask_list):
+		gather_prediction_list = []
 		# 返回最后一时刻的图节点embeddings
 		nodes_embs = gcn(hist_adj_list,
 							  hist_ndFeats_list,
 							  mask_list)
 
 		predict_batch_size = 128
-		gather_predictions=[]
 
 		# print(nodes_embs,node_indices)
-		for i in range(1 +(node_indices.size(1)//predict_batch_size)):
-			cls_input = self.gather_node_embs(nodes_embs, node_indices[:, i*predict_batch_size:(i+1)*predict_batch_size])  # 获取一个batch的边embedding
-			predictions = self.classifier(cls_input)
-			gather_predictions.append(predictions)
-		gather_predictions=torch.cat(gather_predictions, dim=0)
-		return gather_predictions, nodes_embs
+		for time in range (len(hist_adj_list)):
+			gather_predictions=[]
+			node_indices = label_sp[time]['idx']
+			for i in range(1 +(node_indices.size(1)//predict_batch_size)):
+				cls_input = self.gather_node_embs(nodes_embs[time], node_indices[:, i*predict_batch_size:(i+1)*predict_batch_size])  # 获取一个batch的边embedding
+				predictions = self.classifier(cls_input)
+				gather_predictions.append(predictions)
+			gather_prediction_list.append(torch.cat(gather_predictions, dim=0))
+			# gather_prediction_list.append(gather_predictions)
+		return gather_prediction_list, nodes_embs
+	# def predict(self,gcn,hist_adj_list,hist_ndFeats_list,node_indices,mask_list):
+
+	# 	# 返回最后一时刻的图节点embeddings
+	# 	nodes_embs = gcn(hist_adj_list,
+	# 						  hist_ndFeats_list,
+	# 						  mask_list)
+
+	# 	predict_batch_size = 128
+	# 	gather_predictions=[]
+
+	# 	# print(nodes_embs,node_indices)
+	# 	for i in range(1 +(node_indices.size(1)//predict_batch_size)):
+	# 		cls_input = self.gather_node_embs(nodes_embs, node_indices[:, i*predict_batch_size:(i+1)*predict_batch_size])  # 获取一个batch的边embedding
+	# 		predictions = self.classifier(cls_input)
+	# 		gather_predictions.append(predictions)
+	# 	gather_predictions=torch.cat(gather_predictions, dim=0)
+	# 	return gather_predictions, nodes_embs
 
 	def gather_node_embs(self,nodes_embs,node_indices):
 		cls_input = []
