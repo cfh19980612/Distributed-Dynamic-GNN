@@ -30,6 +30,7 @@ class EGCN(torch.nn.Module):
         # print('feat_per_node,',tasker.feats_per_node)
         # if feature partition
         self.partition = partition
+        self.world_size = world_size
         feats_per_node = tasker.feats_per_node
         if self.partition == 'feature':
             if rank != world_size - 1:
@@ -70,7 +71,22 @@ class EGCN(torch.nn.Module):
 
         for (layer, unit) in enumerate(self.GRCU_layers):
             # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
-            gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = self.GCN_init_weights[layer])
+            gcn_weights = self.GCN_init_weights[layer]
+            # snapshot partition, each client exchange the RNN output: receive from the previous client
+            if self.partition == 'snapshot':
+                if self.rank > 0:
+                    dist.recv(tensor=gcn_weights, src=self.rank - 1)
+                else:
+                    pass
+
+            gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = gcn_weights)
+
+            # snapshot partition, each client exchange the RNN output: receive from the previous client
+            if self.partition == 'snapshot':
+                if self.rank != self.world_size - 1:
+                    dist.send(tensor=gcn_weights[-1], dst=self.rank + 1)
+                else:
+                    pass
 
             if layer == 0 and self.partition == 'feature':
                 for i in range (len(Nodes_list)):
