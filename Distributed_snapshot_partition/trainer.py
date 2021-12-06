@@ -286,7 +286,7 @@ class Trainer():
 			time_start = time.time()
 			loss.backward()
 			time_end = time.time()
-			print(self.rank,': compute gradients! Time costs:', time_end - time_start)
+			# print(self.rank,': compute gradients! Time costs:', time_end - time_start)
 			self.gcn_opt.step()
 			self.classifier_opt.step()
 			if self.rank == 0:
