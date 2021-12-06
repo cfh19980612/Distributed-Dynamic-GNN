@@ -32,11 +32,12 @@ class EGCN(torch.nn.Module):
         self.partition = partition
         feats_per_node = tasker.feats_per_node
         if self.partition == 'feature':
-            if rank != world_size - 1:
-                feats_per_node = tasker.feats_per_node // world_size
-            else:
-                # feats_per_node = tasker.feats_per_node // world_size + tasker.feats_per_node%world_size
-                feats_per_node = tasker.feats_per_node // world_size
+            feats_per_node = tasker.feats_per_node // world_size
+            # if rank != world_size - 1:
+            #     feats_per_node = tasker.feats_per_node // world_size
+            # else:
+            #     # feats_per_node = tasker.feats_per_node // world_size + tasker.feats_per_node%world_size
+            #     feats_per_node = tasker.feats_per_node // world_size
         print(feats_per_node)
         feats = [feats_per_node,
                  args.layer_1_feats,
