@@ -101,16 +101,16 @@ class Trainer():
 		for s in self.splitter.train:
 			train_data_load.append(s)
 		time_data_end = time.time()
-		print('[{},{}] |Training data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
+		print('[{},{}] | Training data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
 
 		# generate the test dataload
 		test_data_load = []
 		time_data_start = time.time()
-		print('[{},{}] |Test data load start!'.format(os.getpid(), self.rank))
+		print('[{},{}] | Test data load start!'.format(os.getpid(), self.rank))
 		for s in self.splitter.test:
 			test_data_load.append(s)
 		time_data_end = time.time()
-		print('[{},{}] |Test data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
+		print('[{},{}] | Test data load end with cost: {}'.format(os.getpid(), self.rank, time_data_end - time_data_start))
 
 		for e in range(self.args.num_epochs):
 			train_data = iter(copy.deepcopy(train_data_load))  # 使用深拷贝防止数据集处理时被修改
@@ -141,7 +141,7 @@ class Trainer():
 				_, precision, recall, f1, acc = self.run_epoch(test_data, e, 'TEST', grad = False)
 
 				if self.args.distributed:
-					print("[{},{}] | Epoch:{} ended {}/{} at {} on {} | loss: {} precision: {} recall: {}, f1: {}, acc: {}, time cost: {}".format(
+					print("[{},{}] | Epoch:{} ended {}/{} at {} on {} | loss: {:.4f} precision: {:.4f} recall: {:.4f}, f1: {:.4f}, acc: {:.4f}, time cost: {:.4f}".format(
 						os.getpid(), self.rank, e, self.rank+1, self.DIST_DEFAULT_WORLD_SIZE, self.DIST_DEFAULT_INIT_METHOD, self.device, loss,
 						precision, recall, f1, acc, train_epoch_time_end - train_epoch_time_start))
 				else:
@@ -195,7 +195,7 @@ class Trainer():
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
 												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
-
+			print(len(predictions))
 			# back proporgation
 			loss = self.comp_loss(predictions,s.label_sp['vals'])
 			# if grad:
@@ -260,7 +260,6 @@ class Trainer():
 
 	def optim_step(self,loss):
 		self.tr_step += 1
-
 
 		if self.tr_step % self.args.steps_accum_gradients == 0:
 			self.gcn_opt.zero_grad()

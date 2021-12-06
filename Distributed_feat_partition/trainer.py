@@ -156,17 +156,17 @@ class Trainer():
 				Precision.append(precision)
 				Recall.append(recall)
 				F1.append(f1)
-		# 		if self.args.save_node_embeddings:
-		# 			self.save_node_embs_csv(nodes_embs, self.splitter.train_idx, log_file+'_train_nodeembs.csv.gz')
-		# 			self.save_node_embs_csv(nodes_embs, self.splitter.dev_idx, log_file+'_valid_nodeembs.csv.gz')
-		# 			self.save_node_embs_csv(nodes_embs, self.splitter.test_idx, log_file+'_test_nodeembs.csv.gz')
+				if self.args.save_node_embeddings:
+					self.save_node_embs_csv(nodes_embs, self.splitter.train_idx, log_file+'_train_nodeembs.csv.gz')
+					self.save_node_embs_csv(nodes_embs, self.splitter.dev_idx, log_file+'_valid_nodeembs.csv.gz')
+					self.save_node_embs_csv(nodes_embs, self.splitter.test_idx, log_file+'_test_nodeembs.csv.gz')
 
-		# dataframe = pd.DataFrame(time_spend, columns=['X'])
-		# dataframe = pd.concat([dataframe, pd.DataFrame(Loss,columns=['Y'])],axis=1)
-		# dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
-		# dataframe = pd.concat([dataframe, pd.DataFrame(Recall,columns=['P'])],axis=1)
-		# dataframe = pd.concat([dataframe, pd.DataFrame(F1,columns=['Q'])],axis=1)
-		# dataframe.to_csv(f"../result/{self.args.partition}_{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
+		dataframe = pd.DataFrame(time_spend, columns=['X'])
+		dataframe = pd.concat([dataframe, pd.DataFrame(Loss,columns=['Y'])],axis=1)
+		dataframe = pd.concat([dataframe, pd.DataFrame(Precision,columns=['Z'])],axis=1)
+		dataframe = pd.concat([dataframe, pd.DataFrame(Recall,columns=['P'])],axis=1)
+		dataframe = pd.concat([dataframe, pd.DataFrame(F1,columns=['Q'])],axis=1)
+		dataframe.to_csv(f"../result/{self.args.partition}_{self.args.data}_{self.DIST_DEFAULT_WORLD_SIZE}.csv",header = False,index=False,sep=',')
 
 	def run_epoch(self, split, epoch, set_name, grad):
 		Loss = []
@@ -187,10 +187,11 @@ class Trainer():
 			labels = []
 			for time in range (len(s.hist_adj_list)):
 				labels.append(s.label_sp[time]['vals'])
-			# predictions = torch.cat(predictions, dim=0)
-			# labels = torch.cat(labels, dim=0)
+			predictions = torch.cat(predictions, dim=0)
+			labels = torch.cat(labels, dim=0)
 			# predictions = predictions[len(labels) - 1]
-			labels = labels[len(labels) - 1]
+			# labels = labels[len(labels) - 1]
+			print(len(predictions))
 			loss = self.comp_loss(predictions,labels)
 			Loss.append(loss)
 			# print(self.rank,': compute loss complete!')
