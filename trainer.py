@@ -195,7 +195,6 @@ class Trainer():
 												   s.hist_ndFeats_list,            # s.hist_ndFeats_list 存储时序图每个时刻下的节点特征矩阵
 												   s.label_sp['idx'],              # s.label_sp['idx] 训练节点序号
 												   s.node_mask_list)
-			print(len(predictions))
 			# back proporgation
 			loss = self.comp_loss(predictions,s.label_sp['vals'])
 			# if grad:
