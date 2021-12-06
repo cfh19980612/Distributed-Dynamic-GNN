@@ -131,7 +131,7 @@ class Trainer():
 
 			# 存储时刻以及训练loss
 			time_spend.append(train_epoch_time_end-time_now)  # 时刻
-			Loss.append(loss)
+			Loss.append(loss.item())
 
 			# #  是否执行验证集
 			# if len(self.splitter.dev)>0 and e>self.args.eval_after_epochs:
