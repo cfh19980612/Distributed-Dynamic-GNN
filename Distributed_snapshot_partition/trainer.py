@@ -230,10 +230,11 @@ class Trainer():
 		else:
 			return loss, nodes_embs
 
-	def predict(self,gcn,hist_adj_list,hist_ndFeats_list,label_sp,mask_list):
+	def predict(self,gcn,gcn_init,hist_adj_list,hist_ndFeats_list,label_sp,mask_list):
 		gather_prediction_list = []
 		# 返回最后一时刻的图节点embeddings
-		nodes_embs = gcn(hist_adj_list,
+		nodes_embs = gcn(gcn_init,
+							  hist_adj_list,
 							  hist_ndFeats_list,
 							  mask_list)
 
