@@ -71,7 +71,7 @@ class EGCN(torch.nn.Module):
         for (layer, unit) in enumerate(self.GRCU_layers):
             gcn_weights = gcn_init.out_paras(layer)
             # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
-            gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = self.GCN_init_weights[layer])
+            gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = gcn_weights)
 
             if layer == 0 and self.partition == 'feature':
                 for i in range (len(Nodes_list)):
