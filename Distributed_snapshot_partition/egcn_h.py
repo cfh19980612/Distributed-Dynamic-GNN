@@ -100,7 +100,7 @@ class EGCN(torch.nn.Module):
             self.GCN_list.append(gcn_weights[-1])
 
         # 在用snapshot partition时，需要将每一层的输出结果都保存，不能覆盖，因为每一层RNN都要通讯
-        out = Nodes_list[-1]  # 返回最后一时刻的图节点的最后一层embedding输出
+        out = Nodes_list  # 返回最后一时刻的图节点的最后一层embedding输出
         if self.skipfeats:  # ？？？？
             out = torch.cat((out,node_feats), dim=1)   # use node_feats.to_dense() if 2hot encoded input
         return out
