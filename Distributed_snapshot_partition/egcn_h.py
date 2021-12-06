@@ -73,13 +73,11 @@ class EGCN(torch.nn.Module):
             # GRCU层会输出该层每个时刻图节点的embedding，该操作会覆盖，使得Nodes_list始终存储最后一层输出
             # gcn_weights = self.GCN_init_weights[layer]
 
-
+            gcn_weights = gcn_init.out_paras(layer)
             # snapshot partition, each client exchange the RNN output: receive from the previous client
             if self.partition == 'snapshot':
                 if self.rank > 0:
                     dist.recv(tensor=gcn_weights, src=self.rank - 1)
-                else:
-                    gcn_weights = gcn_init.out_paras(layer)
 
             gcn_weights, Nodes_list = unit(A_list,Nodes_list,nodes_mask_list,self.rank,GCN_init_weights = gcn_weights)
 
