@@ -309,7 +309,6 @@ class Trainer():
 					nodes = nodes[:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
 				else:
 					nodes = nodes[:,self.rank*self.feature_per_node:(self.rank+1)*self.feature_per_node]
-					
 
 			sample.hist_ndFeats_list[i] = nodes.to(self.device)
 			# print(sample.hist_ndFeats_list[i])
