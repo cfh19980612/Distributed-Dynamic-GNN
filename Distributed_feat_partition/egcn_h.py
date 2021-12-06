@@ -38,7 +38,6 @@ class EGCN(torch.nn.Module):
             # else:
             #     # feats_per_node = tasker.feats_per_node // world_size + tasker.feats_per_node%world_size
             #     feats_per_node = tasker.feats_per_node // world_size
-        print(feats_per_node)
         feats = [feats_per_node,
                  args.layer_1_feats,
                  args.layer_2_feats]
@@ -158,8 +157,6 @@ class mat_GRU_cell(torch.nn.Module):
     def __init__(self,args,layer):  # 传入的参数为GCN权重参数的行和列，用来定义GRU的权重参数维度，因为GRU的输入为GCN的权重参数
         super(mat_GRU_cell,self).__init__()
         self.args = args
-        print('self dimension',self.args.rows, self.args.cols)
-        print('self dimension',args.rows, args.cols)
         # 实例化GRCU中GRU操作门:更新门，重置门，候选隐藏状态，以及K-top挑选
         self.update = mat_GRU_gate(args.rows,     # GRU更新门
                                    args.cols,
@@ -214,6 +211,8 @@ class mat_GRU_gate(torch.nn.Module):
         init.xavier_uniform_(t)
 
     def forward(self,x,hidden):  # x: 该时刻上一层（l）节点embedding的k列； hidden:上一时刻的GCN权重参数
+        print(x.size())
+        print(hidden.size())
         out = self.activation(self.W.matmul(x) + \
                               self.U.matmul(hidden) + \
                               self.bias)
